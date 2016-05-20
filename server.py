@@ -21,5 +21,6 @@ api.add_resource(ServiceLogs, '/services/<service_id>/logs')
 
 app.before_request(check_pipeline_permissions)
 
-app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '5000')),
-    debug=(os.environ.get('ENV', 'prod').startswith('dev')))
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '80')),
+        debug=(os.environ.get('ENV', 'prod').startswith('dev')))
