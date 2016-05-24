@@ -18,6 +18,7 @@ api.add_resource(PipelineDown, '/pipelines/<project_id>/down')
 api.add_resource(PipelineStop, '/pipelines/<project_id>/stop')
 api.add_resource(ServiceScale, '/services/<service_id>/scale')
 api.add_resource(ServiceLogs, '/services/<service_id>/logs')
+api.add_resource(ServiceRestart, '/services/<service_id>/restart')
 
 app.before_request(check_pipeline_permissions)
 

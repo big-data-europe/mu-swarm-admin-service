@@ -67,3 +67,10 @@ class ServiceLogs(Resource):
                 logs.append((isodate.parse_datetime(timestamp.decode()), line))
         content = b'\n'.join(line for timestamp, line in sorted(logs))
         return Response(content, 200, mimetype='text/plain')
+
+
+class ServiceRestart(Resource):
+    @get_service
+    def post(self):
+        self.project.restart(service_names=[self.service.name])
+        return {'status': 'ok'}
