@@ -48,7 +48,7 @@ def ensure_post_query(query):
 def open_project(project_id):
     project_dir = '/data/%s' % project_id
     environment = Environment.from_env_file(project_dir)
-    config_details = config.find(project_dir, None, environment)
+    config_details = config.find(project_dir, ['docker-compose.yml'], environment)
     config_data = config.load(config_details)
     api_version = environment.get(
         'COMPOSE_API_VERSION',
