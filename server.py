@@ -19,6 +19,7 @@ api.add_resource(PipelineRestart, '/pipelines/<project_id>/restart')
 api.add_resource(ServiceScale, '/services/<service_id>/scale')
 api.add_resource(ServiceLogs, '/services/<service_id>/logs')
 api.add_resource(ServiceRestart, '/services/<service_id>/restart')
+api.add_resource(ServiceInspect, '/services/<service_id>/inspect')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '80')),
