@@ -11,7 +11,7 @@ from flask_restful_sparql.escaping import escape_string
 from functools import wraps
 import git
 import logging
-from os import environ as ENV
+from os import environ as ENV, path
 
 
 PREFIXES = """
@@ -22,6 +22,7 @@ PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX doap: <http://usefulinc.com/ns/doap#>
 PREFIX w3vocab: <https://www.w3.org/1999/xhtml/vocab#>
 """
+CONFIG_FILES = ['docker-compose.yml', 'docker-compose.prod.yml']
 
 endpoint_url = ENV.get('MU_SPARQL_ENDPOINT', 'http://database:8890/sparql')
 graph = ENV.get('MU_APPLICATION_GRAPH', 'http://mu.semte.ch/application')
@@ -47,8 +48,13 @@ def ensure_post_query(query):
 
 def open_project(project_id):
     project_dir = '/data/%s' % project_id
+    config_files = [
+        x
+        for x in CONFIG_FILES
+        if path.exists(path.join(project_dir, x))
+    ]
     environment = Environment.from_env_file(project_dir)
-    config_details = config.find(project_dir, ['docker-compose.yml'], environment)
+    config_details = config.find(project_dir, config_files, environment)
     config_data = config.load(config_details)
     api_version = environment.get(
         'COMPOSE_API_VERSION',
