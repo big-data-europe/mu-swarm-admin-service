@@ -48,11 +48,9 @@ def ensure_post_query(query):
 
 def open_project(project_id):
     project_dir = '/data/%s' % project_id
-    config_files = [
-        x
-        for x in CONFIG_FILES
-        if path.exists(path.join(project_dir, x))
-    ]
+    config_files = filter(
+        lambda x: path.exists(path.join(project_dir, x)),
+        CONFIG_FILES)
     environment = Environment.from_env_file(project_dir)
     config_details = config.find(project_dir, config_files, environment)
     config_data = config.load(config_details)
