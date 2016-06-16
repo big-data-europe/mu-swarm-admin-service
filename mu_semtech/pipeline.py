@@ -209,3 +209,13 @@ class PipelineStop(BasePipelineResource):
         self.project.stop()
         _update_state(self.project.name, 'swarmui:Stopped')
         return {'status': 'ok'}
+
+
+class PipelineRestart(BasePipelineResource):
+    @get_project
+    def post(self):
+        self.check_permissions(self.project.name)
+        _update_state(self.project.name, 'swarmui:Restarting')
+        self.project.restart()
+        _update_state(self.project.name, 'swarmui:Up')
+        return {'status': 'ok'}
