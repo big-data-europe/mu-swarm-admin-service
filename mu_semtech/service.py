@@ -78,3 +78,23 @@ class ServiceRestart(BasePipelineResource):
         self.check_permissions(self.project.name)
         self.project.restart(service_names=[self.service.name])
         return {'status': 'ok'}
+
+
+class ServiceInspect(BasePipelineResource):
+    parser = RequestParser()
+    parser.add_argument('index', type=inputs.positive)
+
+    @get_service
+    def get(self):
+        self.check_permissions(self.project.name)
+        options = self.parser.parse_args()
+        if not options['index']:
+            containers = self.project.containers(
+                service_names=[self.service.name], stopped=True)
+            return [
+                container.inspect()
+                for container in containers
+            ]
+        else:
+            container = self.service.get_container(number=options['index'])
+            return container.inspect()
