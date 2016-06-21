@@ -1,19 +1,21 @@
 from flask import Response
-from flask_restful import Resource, abort, inputs
+from flask_restful import abort, inputs
 from flask_restful.reqparse import RequestParser
 import isodate
 
 from mu_semtech.helpers import (
     ensure_post_query, escape_string, get_project, graph, get_service)
+from mu_semtech.pipeline import BasePipelineResource
 
 
-class ServiceScale(Resource):
+class ServiceScale(BasePipelineResource):
     parser = RequestParser()
     parser.add_argument('num', type=int, required=True)
     parser.add_argument('timeout', type=int, default=10)
 
     @get_service
     def post(self):
+        self.check_permissions(self.project.name)
         options = self.parser.parse_args()
         self.service.scale(options['num'], timeout=options['timeout'])
         ensure_post_query("""
@@ -41,12 +43,13 @@ class ServiceScale(Resource):
         return {'status': 'ok'}
 
 
-class ServiceLogs(Resource):
+class ServiceLogs(BasePipelineResource):
     parser = RequestParser()
     parser.add_argument('tail', type=inputs.positive)
 
     @get_service
     def get(self):
+        self.check_permissions(self.project.name)
         options = self.parser.parse_args()
         containers = self.project.containers(
             service_names=[self.service.name], stopped=True)
@@ -69,8 +72,9 @@ class ServiceLogs(Resource):
         return Response(content, 200, mimetype='text/plain')
 
 
-class ServiceRestart(Resource):
+class ServiceRestart(BasePipelineResource):
     @get_service
     def post(self):
+        self.check_permissions(self.project.name)
         self.project.restart(service_names=[self.service.name])
         return {'status': 'ok'}

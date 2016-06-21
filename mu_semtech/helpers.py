@@ -4,7 +4,7 @@ from compose.config.environment import Environment
 from compose.const import API_VERSIONS
 from compose.project import Project
 import docker
-from flask import current_app
+from flask import current_app, request
 from flask_restful import abort
 from flask_restful_sparql.http import Client
 from flask_restful_sparql.escaping import escape_string
@@ -21,6 +21,9 @@ PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX doap: <http://usefulinc.com/ns/doap#>
 PREFIX w3vocab: <https://www.w3.org/1999/xhtml/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX auth: <http://mu.semte.ch/vocabularies/authorization/>
+PREFIX session: <http://mu.semte.ch/vocabularies/session/>
 """
 CONFIG_FILES = ['docker-compose.yml', 'docker-compose.prod.yml']
 
@@ -117,3 +120,37 @@ def get_service(func):
         self.service = self.project.get_service(service_name)
         return func(self, **kwargs)
     return wrapper
+
+
+def check_permissions(token, id, **error_members):
+    session_iri = request.headers.get('mu-session-id')
+    assert session_iri, "missing header mu-session-id"
+    res = ensure_get_query("""
+        WITH <http://mu.semte.ch/application>
+        ASK {
+            <%(session_iri)s> session:account/^foaf:account/((a/auth:belongsToActorGroup*/auth:hasRight)|(auth:belongsToActorGroup*/auth:hasRight)) ?tokenConnection .
+            ?tokenConnection auth:hasToken <%(token)s> .
+            ?tokenConnection auth:operatesOn/((^auth:belongsToArtifactGroup*/^a)|(^auth:belongsToArtifactGroup*))/mu:uuid %(id)s
+        }
+        """ % {
+            'session_iri': session_iri,
+            'token': token,
+            'id': escape_string(id),
+        })
+    if not res['boolean']:
+        abort(403, **error_members)
+
+
+def find_user():
+    session_iri = request.headers.get('mu-session-id')
+    assert session_iri, "missing header mu-session-id"
+    data = ensure_get_query("""
+        WITH <http://mu.semte.ch/application>
+        SELECT *
+        WHERE {
+            <%s>
+            <http://mu.semte.ch/vocabularies/session/account>/^foaf:account
+            ?x
+        }
+        """ % session_iri)
+    return data['results']['bindings'][0]['x']['value']

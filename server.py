@@ -6,7 +6,6 @@ import os
 from mu_semtech.api import Api
 from mu_semtech.pipeline import *
 from mu_semtech.service import *
-from mu_semtech.permissions import check_pipeline_permissions
 
 
 app = flask.Flask('mu-swarm-admin')
@@ -19,8 +18,6 @@ api.add_resource(PipelineStop, '/pipelines/<project_id>/stop')
 api.add_resource(ServiceScale, '/services/<service_id>/scale')
 api.add_resource(ServiceLogs, '/services/<service_id>/logs')
 api.add_resource(ServiceRestart, '/services/<service_id>/restart')
-
-app.before_request(check_pipeline_permissions)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '80')),

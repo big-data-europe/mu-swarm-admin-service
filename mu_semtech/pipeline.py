@@ -3,12 +3,17 @@ from flask import current_app
 from flask_restful import Resource, abort
 from flask_restful.reqparse import RequestParser
 import git
+from os import environ as ENV
 from shutil import rmtree
 from uuid import uuid1, uuid4
 
 from mu_semtech.helpers import (
-    ensure_get_query, ensure_post_query, escape_string, get_project, graph,
-    open_project)
+    check_permissions, ensure_get_query, ensure_post_query, escape_string,
+    find_user, get_project, graph, open_project)
+
+
+PIPELINE_CREATION_TOKEN = ENV.get('PIPELINE_CREATION_TOKEN')
+PIPELINE_MANAGEMENT_TOKEN = ENV.get('PIPELINE_MANAGEMENT_TOKEN')
 
 
 def _update_state(uuid, state):
@@ -38,6 +43,14 @@ def _update_state(uuid, state):
 
 
 class PipelineList(Resource):
+    def check_permissions(self, repository_id):
+        if not PIPELINE_CREATION_TOKEN:
+            return
+        check_permissions(
+            PIPELINE_CREATION_TOKEN, repository_id,
+            title="access forbidden",
+            detail="you are not allowed to create pipelines")
+
     def _pull_repository(self, repo):
         try:
             repo.remotes.origin.fetch()
@@ -65,6 +78,17 @@ class PipelineList(Resource):
             ("<http://swarmui.semte.ch/resources/repositories/%s>"
                 % repository_id, "swarmui:pipelines", pipeline_iriref),
         ]
+        if PIPELINE_MANAGEMENT_TOKEN:
+            grant_id = str(uuid4())
+            grant_iriref = \
+                "<http://swarmui.semte.ch/resources/grant/%s>" % grant_id
+            triples.extend([
+                (grant_iriref, "mu:uuid", escape_string(grant_id)),
+                (grant_iriref, "auth:hasToken",
+                    "<%s>" % PIPELINE_MANAGEMENT_TOKEN),
+                (grant_iriref, "auth:operatesOn", pipeline_iriref),
+                ("<%s>" % find_user(), "auth:hasRight", grant_iriref),
+            ])
         if 'https://www.w3.org/1999/xhtml/vocab#icon' in repository:
             triples.append((
                 pipeline_iriref,
@@ -106,6 +130,7 @@ class PipelineList(Resource):
             })
 
     def post(self, repository_id=None):
+        self.check_permissions(repository_id)
         data = ensure_get_query("""
             WITH <http://mu.semte.ch/application>
             DESCRIBE ?x
@@ -145,27 +170,41 @@ class PipelineList(Resource):
             }
 
 
-class PipelineUp(Resource):
+class BasePipelineResource(Resource):
+    def check_permissions(self, pipeline_id):
+        if not PIPELINE_MANAGEMENT_TOKEN:
+            return
+        check_permissions(
+            PIPELINE_MANAGEMENT_TOKEN, pipeline_id,
+            title="access forbidden",
+            detail="you are not allowed to manage this pipeline")
+
+
+class PipelineUp(BasePipelineResource):
     @get_project
     def post(self):
+        self.check_permissions(self.project.name)
         _update_state(self.project.name, 'swarmui:Starting')
         self.project.up()
         _update_state(self.project.name, 'swarmui:Up')
         return {'status': 'ok'}
 
 
-class PipelineDown(Resource):
+class PipelineDown(BasePipelineResource):
     @get_project
     def post(self):
+        print(self.project.name)
+        self.check_permissions(self.project.name)
         _update_state(self.project.name, 'swarmui:Stopping')
         self.project.down(ImageType.none, True)
         _update_state(self.project.name, 'swarmui:Down')
         return {'status': 'ok'}
 
 
-class PipelineStop(Resource):
+class PipelineStop(BasePipelineResource):
     @get_project
     def post(self):
+        self.check_permissions(self.project.name)
         _update_state(self.project.name, 'swarmui:Stopping')
         self.project.stop()
         _update_state(self.project.name, 'swarmui:Stopped')
