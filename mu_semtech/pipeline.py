@@ -89,7 +89,7 @@ class PipelineList(Resource):
                 (grant_iriref, "auth:operatesOn", pipeline_iriref),
                 ("<%s>" % find_user(), "auth:hasRight", grant_iriref),
             ])
-        if 'https://www.w3.org/1999/xhtml/vocab#icon' in repository:
+        if 'http://mu.semte.ch/vocabularies/ext/mdlIcon' in repository:
             triples.append((
                 pipeline_iriref,
                 "ext:mdlIcon",
