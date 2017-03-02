@@ -19,9 +19,7 @@ RUN rm /etc/nginx/sites-enabled/default
 COPY flask.conf /etc/nginx/sites-available/
 RUN ln -s /etc/nginx/sites-available/flask.conf /etc/nginx/sites-enabled/flask.conf
 
-ADD flask_restful_sparql /app/flask_restful_sparql
-ADD server.py app.ini entrypoint.sh /app/
-ADD mu_semtech /app/mu_semtech
+ADD . /app/
 
 VOLUME /data
 
