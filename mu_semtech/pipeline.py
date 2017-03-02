@@ -8,15 +8,17 @@ from shutil import rmtree
 from uuid import uuid1, uuid4
 
 from mu_semtech.helpers import (
-    check_permissions, ensure_get_query, ensure_post_query, escape_string,
-    find_user, get_project, graph, open_project)
+    check_permissions, find_user, get_project, get_resource_id, open_project)
+from sparql import client, graph
+from sparql.escape import escape_string
+from sparql.prefixes import swarmui
 
 
 PIPELINE_CREATION_TOKEN = ENV.get('PIPELINE_CREATION_TOKEN')
 PIPELINE_MANAGEMENT_TOKEN = ENV.get('PIPELINE_MANAGEMENT_TOKEN')
 
 
-def _update_state(uuid, state):
+def update_state(uuid, state):
     query_template = """
         WITH <%(graph)s>
         DELETE {
@@ -35,11 +37,38 @@ def _update_state(uuid, state):
             ?state
         }
         """
-    ensure_post_query(query_template % {
+    client.ensure_update(query_template % {
         'graph': graph,
         'uuid': uuid,
         'new_state': state,
     })
+
+
+def update_pipelines(pipelines):
+    for subject, triples in pipelines.items():
+        for triple in triples:
+            if triple.p == swarmui.get("status"):
+                project_id = get_resource_id(subject)
+                project = open_project(project_id)
+                if triple.o == swarmui.get("Up"):
+                    update_state(project.name, 'swarmui:Starting')
+                    project.up()
+                    update_state(project.name, 'swarmui:Up')
+                elif triple.o == swarmui.get("Down"):
+                    update_state(project.name, 'swarmui:Stopping')
+                    project.down(ImageType.none, True)
+                    update_state(project.name, 'swarmui:Down')
+                elif triple.o == swarmui.get("Stopped"):
+                    update_state(project.name, 'swarmui:Stopping')
+                    project.stop()
+                    update_state(project.name, 'swarmui:Stopped')
+                elif triple.o == swarmui.get("Restarting"):
+                    update_state(project.name, 'swarmui:Restarting')
+                    project.restart()
+                    update_state(project.name, 'swarmui:Up')
+                else:
+                    current_app.logger.exception(
+                        "Not implemented action: %s" % triple.o)
 
 
 class PipelineList(Resource):
@@ -118,7 +147,7 @@ class PipelineList(Resource):
                 (service_iriref, "rdf:type", "swarmui:Service"),
                 (pipeline_iriref, "swarmui:services", service_iriref),
             ])
-        ensure_post_query("""
+        client.ensure_update("""
             INSERT DATA {
                 GRAPH <%(graph)s> {
                     %(triples)s
@@ -131,7 +160,7 @@ class PipelineList(Resource):
 
     def post(self, repository_id=None):
         self.check_permissions(repository_id)
-        data = ensure_get_query("""
+        data = client.ensure_update("""
             WITH <http://mu.semte.ch/application>
             DESCRIBE ?x
             WHERE {
@@ -184,9 +213,9 @@ class PipelineUp(BasePipelineResource):
     @get_project
     def post(self):
         self.check_permissions(self.project.name)
-        _update_state(self.project.name, 'swarmui:Starting')
+        update_state(self.project.name, 'swarmui:Starting')
         self.project.up()
-        _update_state(self.project.name, 'swarmui:Up')
+        update_state(self.project.name, 'swarmui:Up')
         return {'status': 'ok'}
 
 
@@ -195,9 +224,9 @@ class PipelineDown(BasePipelineResource):
     def post(self):
         print(self.project.name)
         self.check_permissions(self.project.name)
-        _update_state(self.project.name, 'swarmui:Stopping')
+        update_state(self.project.name, 'swarmui:Stopping')
         self.project.down(ImageType.none, True)
-        _update_state(self.project.name, 'swarmui:Down')
+        update_state(self.project.name, 'swarmui:Down')
         return {'status': 'ok'}
 
 
@@ -205,9 +234,9 @@ class PipelineStop(BasePipelineResource):
     @get_project
     def post(self):
         self.check_permissions(self.project.name)
-        _update_state(self.project.name, 'swarmui:Stopping')
+        update_state(self.project.name, 'swarmui:Stopping')
         self.project.stop()
-        _update_state(self.project.name, 'swarmui:Stopped')
+        update_state(self.project.name, 'swarmui:Stopped')
         return {'status': 'ok'}
 
 
@@ -215,7 +244,7 @@ class PipelineRestart(BasePipelineResource):
     @get_project
     def post(self):
         self.check_permissions(self.project.name)
-        _update_state(self.project.name, 'swarmui:Restarting')
+        update_state(self.project.name, 'swarmui:Restarting')
         self.project.restart()
-        _update_state(self.project.name, 'swarmui:Up')
+        update_state(self.project.name, 'swarmui:Up')
         return {'status': 'ok'}

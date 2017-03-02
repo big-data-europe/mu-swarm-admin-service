@@ -4,8 +4,23 @@ from flask_restful.reqparse import RequestParser
 import isodate
 
 from mu_semtech.helpers import (
-    ensure_post_query, escape_string, get_project, graph, get_service)
+    get_resource_id, get_resource_title, get_service, get_service_pipeline,
+    open_project)
 from mu_semtech.pipeline import BasePipelineResource
+from sparql import client, graph
+from sparql.prefixes import swarmui
+
+
+def update_services(services):
+    for subject, triples in services.items():
+        for triple in triples:
+            if triple.p == swarmui.get("scaling"):
+                pipeline_iri = get_service_pipeline(triple.s)
+                service_name = get_resource_title(subject)
+                project_id = get_resource_id(pipeline_iri)
+                project = open_project(project_id)
+                service = project.get_service(service_name)
+                service.scale(int(triple.o))
 
 
 class ServiceScale(BasePipelineResource):
@@ -18,7 +33,7 @@ class ServiceScale(BasePipelineResource):
         self.check_permissions(self.project.name)
         options = self.parser.parse_args()
         self.service.scale(options['num'], timeout=options['timeout'])
-        ensure_post_query("""
+        client.ensure_update("""
             WITH <%(graph)s>
             DELETE {
                 <http://swarmui.semte.ch/resources/services/%(uuid)s>

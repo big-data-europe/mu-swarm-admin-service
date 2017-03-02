@@ -6,47 +6,66 @@ from compose.project import Project
 import docker
 from flask import current_app, request
 from flask_restful import abort
-from flask_restful_sparql.http import Client
-from flask_restful_sparql.escaping import escape_string
 from functools import wraps
 import git
 import logging
-from os import environ as ENV, path
+from os import path
+
+from sparql import client, graph
+from sparql.escape import escape_string
 
 
-PREFIXES = """
-PREFIX swarmui: <http://swarmui.semte.ch/vocabularies/core/>
-PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX doap: <http://usefulinc.com/ns/doap#>
-PREFIX w3vocab: <https://www.w3.org/1999/xhtml/vocab#>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX auth: <http://mu.semte.ch/vocabularies/authorization/>
-PREFIX session: <http://mu.semte.ch/vocabularies/session/>
-"""
 CONFIG_FILES = ['docker-compose.yml', 'docker-compose.prod.yml']
 
-endpoint_url = ENV.get('MU_SPARQL_ENDPOINT', 'http://database:8890/sparql')
-graph = ENV.get('MU_APPLICATION_GRAPH', 'http://mu.semte.ch/application')
-client = Client(endpoint_url)
 client.logger.setLevel(logging.DEBUG)
 
 
-def ensure_get_query(query):
-    resp = client.get_query("\n".join([PREFIXES, query]))
-    if resp.status_code >= 300:
-        current_app.logger.error("Database query failed: %s", resp.text)
-        abort(500)
-    return resp.json()
+def get_resource_id(subject):
+    query_template = """
+        SELECT ?o
+        FROM <%(graph)s>
+        WHERE
+        {
+            <%(subject)s> mu:uuid ?o .
+        }
+        """
+    result = client.ensure_query(query_template % {
+        'graph': graph,
+        'subject': subject,
+    })
+    return result['results']['bindings'][0]['o']['value']
 
 
-def ensure_post_query(query):
-    resp = client.post_query("\n".join([PREFIXES, query]))
-    if resp.status_code >= 300:
-        current_app.logger.error("Database query failed: %s", resp.text)
-        abort(500)
-    return resp.json()
+def get_resource_title(subject):
+    query_template = """
+        SELECT ?o
+        FROM <%(graph)s>
+        WHERE
+        {
+            <%(subject)s> dct:title ?o .
+        }
+        """
+    result = client.ensure_query(query_template % {
+        'graph': graph,
+        'subject': subject,
+    })
+    return result['results']['bindings'][0]['o']['value']
+
+
+def get_service_pipeline(subject):
+    query_template = """
+        SELECT ?s
+        FROM <%(graph)s>
+        WHERE
+        {
+            ?s a swarmui:Pipeline ; swarmui:services <%(subject)s> .
+        }
+        """
+    result = client.ensure_query(query_template % {
+        'graph': graph,
+        'subject': subject,
+    })
+    return result['results']['bindings'][0]['s']['value']
 
 
 def open_project(project_id):
@@ -101,7 +120,7 @@ def get_service(func):
     def wrapper(self, **kwargs):
         assert not hasattr(self, 'project') and not hasattr(self, 'service')
         self.service_id = kwargs.pop('service_id')
-        data = ensure_get_query("""
+        data = client.ensure_query("""
             DESCRIBE ?x {?x mu:uuid %s}
             """ % escape_string(self.service_id))
         if not data:
@@ -125,7 +144,7 @@ def get_service(func):
 def check_permissions(token, id, **error_members):
     session_iri = request.headers.get('mu-session-id')
     assert session_iri, "missing header mu-session-id"
-    res = ensure_get_query("""
+    res = client.ensure_query("""
         WITH <http://mu.semte.ch/application>
         ASK {
             <%(session_iri)s> session:account/^foaf:account/((a/auth:belongsToActorGroup*/auth:hasRight)|(auth:belongsToActorGroup*/auth:hasRight)) ?tokenConnection .
@@ -144,7 +163,7 @@ def check_permissions(token, id, **error_members):
 def find_user():
     session_iri = request.headers.get('mu-session-id')
     assert session_iri, "missing header mu-session-id"
-    data = ensure_get_query("""
+    data = client.ensure_query("""
         WITH <http://mu.semte.ch/application>
         SELECT *
         WHERE {

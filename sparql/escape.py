@@ -1,8 +1,3 @@
-"""
-This file provides functions to escape different types
-of input for sparql queries.
-"""
-
 import re
 
 
