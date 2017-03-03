@@ -47,7 +47,7 @@ def update_state(uuid, state):
 def update_pipelines(pipelines):
     for subject, triples in pipelines.items():
         for triple in triples:
-            if triple.p == swarmui.get("status"):
+            if triple.p == swarmui.get("requestedStatus"):
                 project_id = get_resource_id(subject)
                 project = open_project(project_id)
                 if triple.o == swarmui.get("Up"):
@@ -62,10 +62,6 @@ def update_pipelines(pipelines):
                     update_state(project.name, 'swarmui:Stopping')
                     project.stop()
                     update_state(project.name, 'swarmui:Stopped')
-                elif triple.o == swarmui.get("Restarting"):
-                    update_state(project.name, 'swarmui:Restarting')
-                    project.restart()
-                    update_state(project.name, 'swarmui:Up')
                 else:
                     current_app.logger.exception(
                         "Not implemented action: %s" % triple.o)

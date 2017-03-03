@@ -9,7 +9,6 @@ from mu_semtech.delta import UpdateData
 from mu_semtech.pipeline import *
 from mu_semtech.service import *
 from sparql import client, graph
-from sparql.prefixes import swarmui
 
 
 app = flask.Flask('mu-swarm-admin')
