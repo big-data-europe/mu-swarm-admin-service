@@ -142,6 +142,8 @@ def get_service(func):
 
 
 def check_permissions(token, id, **error_members):
+    if token is None:
+        return
     session_iri = request.headers.get('mu-session-id')
     assert session_iri, "missing header mu-session-id"
     res = client.ensure_query("""

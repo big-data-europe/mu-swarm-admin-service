@@ -44,6 +44,12 @@ def receive_update():
             lambda x: x.s.startswith("http://swarmui.semte.ch/resources/services/"))
     }
     update_services(services)
+    repositories = {
+        x.s: list(my_data.filter_inserts(lambda y: y.s == x.s))
+        for x in my_data.filter_inserts(
+            lambda x: x.s.startswith("http://swarmui.semte.ch/resources/repositories/"))
+    }
+    update_repositories(repositories)
     return ("", 204)
 
 if __name__ == '__main__':
