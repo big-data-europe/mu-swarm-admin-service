@@ -9,7 +9,7 @@ ENV PORT 80
 ENV MU_SPARQL_ENDPOINT 'http://database:8890/sparql'
 ENV MU_APPLICATION_GRAPH 'http://mu.semte.ch/application'
 
-RUN apt-get-install nginx uwsgi
+RUN apt-get-install nginx
 
 ADD requirements.txt /app/
 WORKDIR /app
