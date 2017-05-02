@@ -60,7 +60,7 @@ def open_project(project_id):
     api_version = environment.get(
         'COMPOSE_API_VERSION',
         API_VERSIONS[config_data.version])
-    client = docker.Client(
+    client = docker.api.APIClient(
         version=api_version,
         **docker.utils.kwargs_from_env(environment=environment))
     return Project.from_config(project_id, config_data, client)
