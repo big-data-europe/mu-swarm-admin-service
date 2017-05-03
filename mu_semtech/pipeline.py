@@ -22,17 +22,17 @@ def update_state(uuid, state):
     query_template = """
         WITH <%(graph)s>
         DELETE {
-            <http://swarmui.semte.ch/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
             swarmui:status
             ?state
         }
         INSERT {
-            <http://swarmui.semte.ch/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
             swarmui:status
             %(new_state)s
         }
         WHERE {
-            <http://swarmui.semte.ch/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
             swarmui:status
             ?state
         }
@@ -118,18 +118,18 @@ def _pull_repository(repo):
 
 def _create_base_pipeline(repository, repository_id, project_id):
     pipeline_iriref = \
-        "<http://swarmui.semte.ch/resources/pipelines/%s>" % project_id
+        "<http://swarm-ui.big-data-europe.eu/resources/pipelines/%s>" % project_id
     triples = [
         (pipeline_iriref, "mu:uuid", escape_string(project_id)),
         (pipeline_iriref, "swarmui:status", "swarmui:Down"),
         (pipeline_iriref, "rdf:type", "swarmui:Pipeline"),
-        ("<http://swarmui.semte.ch/resources/repositories/%s>"
+        ("<http://swarm-ui.big-data-europe.eu/resources/repositories/%s>"
             % repository_id, "swarmui:pipelines", pipeline_iriref),
     ]
     if PIPELINE_MANAGEMENT_TOKEN:
         grant_id = str(uuid4())
         grant_iriref = \
-            "<http://swarmui.semte.ch/resources/grant/%s>" % grant_id
+            "<http://swarm-ui.big-data-europe.eu/resources/grant/%s>" % grant_id
         triples.extend([
             (grant_iriref, "mu:uuid", escape_string(grant_id)),
             (grant_iriref, "auth:hasToken",
@@ -168,12 +168,12 @@ def _create_base_pipeline(repository, repository_id, project_id):
 def _update_database(repository, project_id):
     project = open_project(project_id)
     pipeline_iriref = \
-        "<http://swarmui.semte.ch/resources/pipelines/%s>" % project_id
+        "<http://swarm-ui.big-data-europe.eu/resources/pipelines/%s>" % project_id
     triples = []
     for service in project.services:
         service_id = str(uuid4())
         service_iriref = (
-            "<http://swarmui.semte.ch/resources/services/%s>"
+            "<http://swarm-ui.big-data-europe.eu/resources/services/%s>"
             % service_id)
         triples.extend([
             (service_iriref, "mu:uuid", escape_string(service_id)),

@@ -36,17 +36,17 @@ class ServiceScale(BasePipelineResource):
         client.ensure_update("""
             WITH <%(graph)s>
             DELETE {
-                <http://swarmui.semte.ch/resources/services/%(uuid)s>
+                <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
                 swarmui:scaling
                 ?scaling
             }
             INSERT {
-                <http://swarmui.semte.ch/resources/services/%(uuid)s>
+                <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
                 swarmui:scaling
                 %(new_scaling)s
             }
             WHERE {
-                <http://swarmui.semte.ch/resources/services/%(uuid)s>
+                <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
                 swarmui:scaling
                 ?scaling
             }

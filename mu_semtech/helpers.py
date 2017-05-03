@@ -128,11 +128,11 @@ def get_service(func):
                 title="no such service",
                 detail="can not find service %s" % self.service_id)
         service_iri = \
-            "http://swarmui.semte.ch/resources/services/" + self.service_id
+            "http://swarm-ui.big-data-europe.eu/resources/services/" + self.service_id
         service_name = data[service_iri]['http://purl.org/dc/terms/title'][0]['value']
         pipeline_iri = next(filter(
             lambda x: x.startswith(
-                'http://swarmui.semte.ch/resources/pipelines'),
+                'http://swarm-ui.big-data-europe.eu/resources/pipelines'),
             data.keys()))
         project_id = pipeline_iri.rsplit('/', 1)[1]
         self.project = open_project(project_id)
