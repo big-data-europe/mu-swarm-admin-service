@@ -27,27 +27,28 @@ api.add_resource(ServiceInspect, '/services/<service_id>/inspect')
 
 @app.route("/update", methods=['POST'])
 def receive_update():
-    data = [UpdateData(x) for x in flask.request.get_json()]
+    data = [UpdateData(x) for x in flask.request.get_json()['delta']]
+    app.logger.debug("Received: %r", data)
     try:
         my_data = next(x for x in data if x.graph == graph)
     except StopIteration:
         return ("", 204)
     pipelines = {
-        x.s: list(my_data.filter_inserts(lambda y: y.s == x.s))
+        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.startswith("http://swarmui.semte.ch/resources/pipelines/"))
+            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/pipelines/"))
     }
     update_pipelines(pipelines)
     services = {
-        x.s: list(my_data.filter_inserts(lambda y: y.s == x.s))
+        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.startswith("http://swarmui.semte.ch/resources/services/"))
+            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/services/"))
     }
     update_services(services)
     repositories = {
-        x.s: list(my_data.filter_inserts(lambda y: y.s == x.s))
+        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.startswith("http://swarmui.semte.ch/resources/repositories/"))
+            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/repositories/"))
     }
     update_repositories(repositories)
     return ("", 204)

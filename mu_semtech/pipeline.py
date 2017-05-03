@@ -64,7 +64,7 @@ def update_pipelines(pipelines):
                     update_state(project.name, 'swarmui:Stopped')
                 else:
                     current_app.logger.exception(
-                        "Not implemented action: %s" % triple.o)
+                        "Not implemented action: %s" % triple.o.value)
 
 
 def update_repositories(repositories):

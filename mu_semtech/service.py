@@ -15,12 +15,12 @@ def update_services(services):
     for subject, triples in services.items():
         for triple in triples:
             if triple.p == swarmui.get("scaling"):
-                pipeline_iri = get_service_pipeline(triple.s)
+                pipeline_iri = get_service_pipeline(triple.s.value)
                 service_name = get_resource_title(subject)
                 project_id = get_resource_id(pipeline_iri)
                 project = open_project(project_id)
                 service = project.get_service(service_name)
-                service.scale(int(triple.o))
+                service.scale(int(triple.o.value))
 
 
 class ServiceScale(BasePipelineResource):
