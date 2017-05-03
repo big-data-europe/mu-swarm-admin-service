@@ -36,19 +36,19 @@ def receive_update():
     pipelines = {
         x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/pipelines/"))
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipelines/"))
     }
     update_pipelines(pipelines)
     services = {
         x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/services/"))
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/services/"))
     }
     update_services(services)
     repositories = {
         x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarmui.semte.ch/resources/repositories/"))
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/repositories/"))
     }
     update_repositories(repositories)
     return ("", 204)
