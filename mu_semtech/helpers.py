@@ -132,7 +132,7 @@ def get_service(func):
         service_name = data[service_iri]['http://purl.org/dc/terms/title'][0]['value']
         pipeline_iri = next(filter(
             lambda x: x.startswith(
-                'http://swarm-ui.big-data-europe.eu/resources/pipelines'),
+                'http://swarm-ui.big-data-europe.eu/resources/pipeline-instances'),
             data.keys()))
         project_id = pipeline_iri.rsplit('/', 1)[1]
         self.project = open_project(project_id)
