@@ -36,7 +36,7 @@ def receive_update():
     pipelines = {
         x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
         for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipelines/"))
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/"))
     }
     update_pipelines(pipelines)
     services = {

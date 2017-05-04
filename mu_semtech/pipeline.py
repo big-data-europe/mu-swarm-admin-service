@@ -22,17 +22,17 @@ def update_state(uuid, state):
     query_template = """
         WITH <%(graph)s>
         DELETE {
-            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
             swarmui:status
             ?state
         }
         INSERT {
-            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
             swarmui:status
             %(new_state)s
         }
         WHERE {
-            <http://swarm-ui.big-data-europe.eu/resources/pipelines/%(uuid)s>
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
             swarmui:status
             ?state
         }
@@ -118,7 +118,7 @@ def _pull_repository(repo):
 
 def _create_base_pipeline(repository, repository_id, project_id):
     pipeline_iriref = \
-        "<http://swarm-ui.big-data-europe.eu/resources/pipelines/%s>" % project_id
+        "<http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%s>" % project_id
     triples = [
         (pipeline_iriref, "mu:uuid", escape_string(project_id)),
         (pipeline_iriref, "swarmui:status", "swarmui:Down"),
@@ -168,7 +168,7 @@ def _create_base_pipeline(repository, repository_id, project_id):
 def _update_database(repository, project_id):
     project = open_project(project_id)
     pipeline_iriref = \
-        "<http://swarm-ui.big-data-europe.eu/resources/pipelines/%s>" % project_id
+        "<http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%s>" % project_id
     triples = []
     for service in project.services:
         service_id = str(uuid4())
