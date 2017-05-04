@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import flask
+from itertools import groupby
 import logging
 import os
 
@@ -34,21 +35,24 @@ def receive_update():
     except StopIteration:
         return ("", 204)
     pipelines = {
-        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
-        for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/"))
+        s: list(group)
+        for s, group in groupby(my_data.filter_inserts(
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/")),
+            lambda x: x.s.value)
     }
     update_pipelines(pipelines)
     services = {
-        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
-        for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/services/"))
+        s: list(group)
+        for s, group in groupby(my_data.filter_inserts(
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/services/")),
+            lambda x: x.s.value)
     }
     update_services(services)
     repositories = {
-        x.s.value: list(my_data.filter_inserts(lambda y: y.s == x.s))
-        for x in my_data.filter_inserts(
-            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/repositories/"))
+        s: list(group)
+        for s, group in groupby(my_data.filter_inserts(
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/repositories/")),
+            lambda x: x.s.value)
     }
     update_repositories(repositories)
     return ("", 204)
