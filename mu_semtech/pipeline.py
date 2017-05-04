@@ -65,6 +65,12 @@ def update_pipelines(pipelines):
                 else:
                     current_app.logger.exception(
                         "Not implemented action: %s" % triple.o.value)
+            elif triple.p == swarmui.get("restartRequested"):
+                project_id = get_resource_id(subject)
+                project = open_project(project_id)
+                update_state(self.project.name, 'swarmui:Restarting')
+                project.restart()
+                update_state(project.name, 'swarmui:Up')
 
 
 def update_repositories(repositories):

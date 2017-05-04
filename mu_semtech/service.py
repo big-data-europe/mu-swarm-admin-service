@@ -21,6 +21,12 @@ def update_services(services):
                 project = open_project(project_id)
                 service = project.get_service(service_name)
                 service.scale(int(triple.o.value))
+            elif triple.p == swarmui.get("restartRequested"):
+                pipeline_iri = get_service_pipeline(triple.s.value)
+                service_name = get_resource_title(subject)
+                project_id = get_resource_id(pipeline_iri)
+                project = open_project(project_id)
+                project.restart(service_names=[service_name])
 
 
 class ServiceScale(BasePipelineResource):
