@@ -78,7 +78,7 @@ def update_repositories(repositories):
                 assert data
                 repository, = tuple(data.values())
                 location = repository[doap + 'location'][0]['value']
-                project_id = get_resource_id(triple.o)
+                project_id = get_resource_id(triple.o.value)
                 try:
                     existing_repo = git.Repo('/data/%s' % project_id)
                 except git.exc.NoSuchPathError:
