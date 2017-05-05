@@ -22,6 +22,10 @@ class Value:
         return "<%s type=%s value=%s datatype=%s>" % \
             (self.__class__.__name__, self.type, self.value, self.datatype)
 
+    def __hash__(self):
+        return hash((self.type, self.value, self.datatype))
+
+
 class Triple:
     def __init__(self, data):
         assert isinstance(data, dict)
@@ -37,3 +41,12 @@ class Triple:
 
     def __repr__(self):
         return "<%s s=%s p=%s o=%s>" % (self.__class__.__name__, self.s, self.p, self.o)
+
+    def __hash__(self):
+        return hash((hash(self.s), hash(self.p), hash(self.o)))
+
+    def __eq__(self, other):
+        if isinstance(other, Triple):
+            return hash(self) == hash(other)
+        else:
+            return False
