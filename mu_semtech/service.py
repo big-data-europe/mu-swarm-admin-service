@@ -11,6 +11,31 @@ from sparql import client, graph
 from sparql.prefixes import swarmui
 
 
+def reset_restart_requested(subject):
+    query_template = """
+        WITH <%(graph)s>
+        DELETE {
+            <%(subject)s>
+            swarmui:restartRequested
+            ?state
+        }
+        INSERT {
+            <%(subject)s>
+            swarmui:restartRequested
+            "false"
+        }
+        WHERE {
+            <%(subject)s>
+            swarmui:restartRequested
+            ?state
+        }
+        """
+    client.ensure_update(query_template % {
+        'graph': graph,
+        'subject': subject,
+    })
+
+
 def update_services(services):
     for subject, triples in services.items():
         for triple in triples:
@@ -21,7 +46,8 @@ def update_services(services):
                 project = open_project(project_id)
                 service = project.get_service(service_name)
                 service.scale(int(triple.o.value))
-            elif triple.p == swarmui.get("restartRequested"):
+            elif triple.p == swarmui.get("restartRequested") and triple.o == "true":
+                reset_restart_requested(subject)
                 pipeline_iri = get_service_pipeline(triple.s.value)
                 service_name = get_resource_title(subject)
                 project_id = get_resource_id(pipeline_iri)

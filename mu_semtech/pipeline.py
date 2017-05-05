@@ -44,6 +44,31 @@ def update_state(uuid, state):
     })
 
 
+def reset_restart_requested(uuid):
+    query_template = """
+        WITH <%(graph)s>
+        DELETE {
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
+            swarmui:restartRequested
+            ?state
+        }
+        INSERT {
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
+            swarmui:restartRequested
+            "false"
+        }
+        WHERE {
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
+            swarmui:restartRequested
+            ?state
+        }
+        """
+    client.ensure_update(query_template % {
+        'graph': graph,
+        'uuid': uuid,
+    })
+
+
 def update_pipelines(pipelines):
     for subject, triples in pipelines.items():
         for triple in triples:
@@ -65,9 +90,10 @@ def update_pipelines(pipelines):
                 else:
                     current_app.logger.exception(
                         "Not implemented action: %s" % triple.o.value)
-            elif triple.p == swarmui.get("restartRequested"):
+            elif triple.p == swarmui.get("restartRequested") and triple.o == "true":
                 project_id = get_resource_id(subject)
                 project = open_project(project_id)
+                reset_restart_requested(project.name)
                 update_state(project.name, 'swarmui:Restarting')
                 project.restart()
                 update_state(project.name, 'swarmui:Up')
@@ -295,6 +321,7 @@ class PipelineRestart(BasePipelineResource):
     @get_project
     def post(self):
         self.check_permissions(self.project.name)
+        reset_restart_requested(project.name)
         update_state(self.project.name, 'swarmui:Restarting')
         self.project.restart()
         update_state(self.project.name, 'swarmui:Up')
