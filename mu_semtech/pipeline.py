@@ -68,7 +68,7 @@ def update_pipelines(pipelines):
             elif triple.p == swarmui.get("restartRequested"):
                 project_id = get_resource_id(subject)
                 project = open_project(project_id)
-                update_state(self.project.name, 'swarmui:Restarting')
+                update_state(project.name, 'swarmui:Restarting')
                 project.restart()
                 update_state(project.name, 'swarmui:Up')
 
