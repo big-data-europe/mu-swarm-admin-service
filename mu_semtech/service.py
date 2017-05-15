@@ -19,15 +19,15 @@ def reset_restart_requested(subject):
             swarmui:restartRequested
             ?state
         }
-        INSERT {
-            <%(subject)s>
-            swarmui:restartRequested
-            "false"
-        }
         WHERE {
             <%(subject)s>
             swarmui:restartRequested
             ?state
+        }
+        INSERT {
+            <%(subject)s>
+            swarmui:restartRequested
+            "false"
         }
         """
     client.ensure_update(query_template % {
@@ -72,15 +72,15 @@ class ServiceScale(BasePipelineResource):
                 swarmui:scaling
                 ?scaling
             }
-            INSERT {
-                <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
-                swarmui:scaling
-                %(new_scaling)s
-            }
             WHERE {
                 <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
                 swarmui:scaling
                 ?scaling
+            }
+            INSERT {
+                <http://swarm-ui.big-data-europe.eu/resources/services/%(uuid)s>
+                swarmui:scaling
+                %(new_scaling)s
             }
             """ % {
                 'graph': graph,

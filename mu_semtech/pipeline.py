@@ -26,15 +26,15 @@ def update_state(uuid, state):
             swarmui:status
             ?state
         }
-        INSERT {
-            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
-            swarmui:status
-            %(new_state)s
-        }
         WHERE {
             <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
             swarmui:status
             ?state
+        }
+        INSERT {
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
+            swarmui:status
+            %(new_state)s
         }
         """
     client.ensure_update(query_template % {
@@ -52,15 +52,15 @@ def reset_restart_requested(uuid):
             swarmui:restartRequested
             ?state
         }
-        INSERT {
-            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
-            swarmui:restartRequested
-            "false"
-        }
         WHERE {
             <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
             swarmui:restartRequested
             ?state
+        }
+        INSERT {
+            <http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/%(uuid)s>
+            swarmui:restartRequested
+            "false"
         }
         """
     client.ensure_update(query_template % {
