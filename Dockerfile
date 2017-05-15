@@ -1,4 +1,4 @@
-FROM python:3.4-wheezy
+FROM python:3.4
 LABEL authors="Cecile Tonglet <cecile.tonglet@gmail.com>"
 
 ADD https://raw.githubusercontent.com/guilhem/apt-get-install/master/apt-get-install /usr/bin/
