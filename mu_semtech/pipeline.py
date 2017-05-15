@@ -128,6 +128,7 @@ def update_repositories(repositories):
                     rmtree(repo.working_dir)
                     raise
                 else:
+                    update_state(project_id, 'swarmui:Down')
                     return project_id
 
 
