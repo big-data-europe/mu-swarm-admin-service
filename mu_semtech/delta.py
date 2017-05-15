@@ -19,3 +19,7 @@ class UpdateData:
     def filter_inserts(self, func):
         assert callable(func)
         return (x for x in self.inserts if func(x))
+
+    def filter_deletes(self, func):
+        assert callable(func)
+        return (x for x in self.deletes if func(x))

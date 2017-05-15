@@ -11,7 +11,7 @@ from mu_semtech.helpers import (
     check_permissions, find_user, get_project, get_resource_id, open_project)
 from sparql import client, graph
 from sparql.escape import escape_string
-from sparql.prefixes import doap, swarmui
+from sparql.prefixes import doap, mu, swarmui
 
 
 PIPELINE_CREATION_TOKEN = ENV.get('PIPELINE_CREATION_TOKEN')
@@ -69,8 +69,8 @@ def reset_restart_requested(uuid):
     })
 
 
-def update_pipelines(pipelines):
-    for subject, triples in pipelines.items():
+def update_pipelines(inserted, deleted):
+    for subject, triples in inserted.items():
         for triple in triples:
             if triple.p == swarmui.get("requestedStatus"):
                 project_id = get_resource_id(subject)
@@ -97,6 +97,17 @@ def update_pipelines(pipelines):
                 update_state(project.name, 'swarmui:Restarting')
                 project.restart()
                 update_state(project.name, 'swarmui:Up')
+    for subject, triples in deleted.items():
+        for triple in triples:
+            if triple.p == mu.get("uuid"):
+                project = open_project(triple.o.value)
+                project.down(ImageType.none, True)
+                try:
+                    repo = git.Repo('/data/%s' % triple.o.value)
+                except git.exc.NoSuchPathError:
+                    raise
+                else:
+                    rmtree(repo.working_dir)
 
 
 def update_repositories(repositories):

@@ -34,13 +34,19 @@ def receive_update():
         my_data = next(x for x in data if x.graph == graph)
     except StopIteration:
         return ("", 204)
-    pipelines = {
+    pipelines_inserted = {
         s: list(group)
         for s, group in groupby(my_data.filter_inserts(
             lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/")),
             lambda x: x.s.value)
     }
-    update_pipelines(pipelines)
+    pipelines_deleted = {
+        s: list(group)
+        for s, group in groupby(my_data.filter_deletes(
+            lambda x: x.s.value.startswith("http://swarm-ui.big-data-europe.eu/resources/pipeline-instances/")),
+            lambda x: x.s.value)
+    }
+    update_pipelines(pipelines_inserted, pipelines_deleted)
     services = {
         s: list(group)
         for s, group in groupby(my_data.filter_inserts(
