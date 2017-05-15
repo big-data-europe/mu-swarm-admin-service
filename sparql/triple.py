@@ -12,8 +12,7 @@ class Value:
     def __eq__(self, other):
         if isinstance(other, Value):
             return (
-                self.type is other.type and self.value is other.value and
-                self.datatype is other.datatype
+                self.type is other.type and self.value is other.value
             )
         else:
             return self.value == other
@@ -23,7 +22,7 @@ class Value:
             (self.__class__.__name__, self.type, self.value, self.datatype)
 
     def __hash__(self):
-        return hash((self.type, self.value, self.datatype))
+        return hash((self.type, self.value))
 
 
 class Triple:
