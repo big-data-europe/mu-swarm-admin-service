@@ -140,7 +140,6 @@ def update_repositories(repositories):
                     raise
                 else:
                     update_state(project_id, 'swarmui:Down')
-                    return project_id
 
 
 def _pull_repository(repo):
