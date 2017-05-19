@@ -1,26 +1,16 @@
-FROM python:3.4
-LABEL authors="Cecile Tonglet <cecile.tonglet@gmail.com>"
+FROM python:3.6
 
-ADD https://raw.githubusercontent.com/guilhem/apt-get-install/master/apt-get-install /usr/bin/
-RUN chmod +x /usr/bin/apt-get-install
-
+ENV MU_SPARQL_ENDPOINT http://database:8890/sparql
+ENV MU_APPLICATION_GRAPH http://mu.semte.ch/application
 ENV ENV prod
 ENV PORT 80
-ENV MU_SPARQL_ENDPOINT 'http://database:8890/sparql'
-ENV MU_APPLICATION_GRAPH 'http://mu.semte.ch/application'
 
-RUN apt-get-install nginx
+RUN mkdir /src
+WORKDIR /src
 
-ADD requirements.txt /app/
-WORKDIR /app
-RUN pip3 install -r requirements.txt
+COPY requirements.txt /src/requirements.txt
+RUN pip install -r requirements.txt
 
-RUN rm /etc/nginx/sites-enabled/default
-COPY flask.conf /etc/nginx/sites-available/
-RUN ln -s /etc/nginx/sites-available/flask.conf /etc/nginx/sites-enabled/flask.conf
+COPY . /src
 
-ADD . /app/
-
-VOLUME /data
-
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["/src/entrypoint.sh"]
