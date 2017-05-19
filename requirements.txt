@@ -1,6 +1,5 @@
-Flask==0.12.1
-Flask-RESTful==0.3.5
-isodate==0.5.4
-uwsgi==2.0.13.1
+aiohttp == 2.0.1
+aiosparql == 0.5.0
+python-dateutil == 2.6.0
 docker-compose==1.13.0-rc1
 GitPython==2.0.1
