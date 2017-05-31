@@ -1,9 +1,11 @@
+import aiodockerpy.api.client
 from aiohttp import web
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_string, IRI
 import asyncio
 from compose import config
 from compose.config.environment import Environment
+import docker.utils.utils
 import logging
 from os import environ as ENV
 import re
@@ -31,6 +33,57 @@ class Application(web.Application):
         if not hasattr(self, '_sparql'):
             self._sparql = SPARQLClient(loop=self.loop)
         return self._sparql
+
+    @property
+    def docker(self):
+        if not hasattr(self, '_docker'):
+            docker_args = docker.utils.utils.kwargs_from_env()
+            self._docker = aiodockerpy.api.client.APIClient(
+                loop=self.loop, **docker_args)
+        return self._docker
+
+    @property
+    async def container(self):
+        if not hasattr(self, '_container'):
+            regex = re.compile(r"/docker[/-]([a-f0-9]{64})(\.scope)?$")
+            with open("/proc/self/cgroup") as fh:
+                for line in fh.readlines():
+                    matches = regex.search(line)
+                    if matches:
+                        container_id = matches.group(1)
+                        break
+                else:
+                    raise Exception("Could not find container ID")
+            self._container = await self.docker.inspect_container(container_id)
+        return self._container
+
+    @property
+    async def network(self):
+        if not hasattr(self, '_network'):
+            try:
+                container = await self.container
+                self._network = next(iter(
+                    container['NetworkSettings']['Networks'].keys()))
+            except StopIteration:
+                raise Exception("No network found")
+        return self._network
+
+    async def join_public_network(self, project_id):
+        for container in await self.docker.containers(
+                filters={
+                    'label': "com.docker.compose.project=" + project_id.lower()
+                }):
+            container = await self.docker.inspect_container(container)
+            env = dict([
+                x.split('=', 1)
+                for x in container['Config']['Env']
+            ])
+            if 'VIRTUAL_HOST' not in env:
+                continue
+            logger.debug("Connecting container %s to network %s...",
+                         container['Id'], await self.network)
+            await self.docker.connect_container_to_network(
+                container['Id'], await self.network)
 
     async def get_resource_id(self, subject):
         result = await self.sparql.query("""
