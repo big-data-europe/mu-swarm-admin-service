@@ -31,6 +31,8 @@ _state_to_action = {
 async def do_action(app, project_id, args, end_state):
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
     await app.run_command("docker-compose", *args, cwd="/data/%s" % project_id)
+    if end_state == SwarmUI.Up:
+        await app.join_public_network(project_id)
     await app.update_state(project_id, end_state)
 
 
