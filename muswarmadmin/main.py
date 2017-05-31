@@ -4,9 +4,8 @@ from aiosparql.syntax import escape_string, IRI
 import asyncio
 from compose import config
 from compose.config.environment import Environment
-from compose.project import Project
 import logging
-from os import environ as ENV, path
+from os import environ as ENV
 import re
 import subprocess
 
@@ -14,7 +13,6 @@ from muswarmadmin.delta import update
 from muswarmadmin.services import logs
 
 
-CONFIG_FILES = ['docker-compose.yml', 'docker-compose.prod.yml']
 logger = logging.getLogger(__name__)
 
 
@@ -22,11 +20,6 @@ if ENV.get("ENV", "prod").startswith("dev"):
     logging.basicConfig(level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.INFO)
-
-
-class FakeDockerClient:
-    def __getattr__(self, attr):
-        raise Exception("This method must never be called")
 
 
 class Application(web.Application):
@@ -50,15 +43,12 @@ class Application(web.Application):
             """, subject)
         return result['results']['bindings'][0]['o']['value']
 
-    def open_project(self, project_id):
+    def open_compose_data(self, project_id):
         project_dir = '/data/%s' % project_id
-        config_files = filter(
-            lambda x: path.exists(path.join(project_dir, x)),
-            CONFIG_FILES)
+        config_files = config.config.get_default_config_files(project_dir)
         environment = Environment.from_env_file(project_dir)
         config_details = config.find(project_dir, config_files, environment)
-        config_data = config.load(config_details)
-        return Project.from_config(project_id, config_data, FakeDockerClient())
+        return config.load(config_details)
 
     async def update_state(self, uuid, state):
         await self.sparql.update("""

@@ -12,15 +12,15 @@ logger = logging.getLogger(__name__)
 
 
 async def _insert_triples(app, project_id, pipeline):
-    project = app.open_project(project_id)
+    data = app.open_compose_data(project_id)
     triples = Triples()
-    for service in project.services:
+    for service in data.services:
         service_id = uuid4()
         service_iri = RDFTerm(":%s" % service_id)
         triples.append((pipeline, SwarmUI.services, service_iri))
         triples.append(Node(service_iri, {
             Mu.uuid: service_id,
-            Dct.title: service.name,
+            Dct.title: service['name'],
             SwarmUI.scaling: 1,
             RDF.type: SwarmUI.Service,
         }))
