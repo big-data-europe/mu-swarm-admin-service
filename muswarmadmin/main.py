@@ -33,9 +33,11 @@ class Application(web.Application):
     run_command_timeout = 600
     base_resource = IRI("http://swarm-ui.big-data-europe.eu/resources/")
 
-    def __init__(self, *args, **kwargs):
-        super(Application, self).__init__(*args, **kwargs)
-        self.sparql = SPARQLClient()
+    @property
+    def sparql(self):
+        if not hasattr(self, '_sparql'):
+            self._sparql = SPARQLClient(loop=self.loop)
+        return self._sparql
 
     async def get_resource_id(self, subject):
         result = await self.sparql.query("""
