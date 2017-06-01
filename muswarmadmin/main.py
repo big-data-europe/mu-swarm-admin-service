@@ -68,6 +68,19 @@ class Application(web.Application):
                 raise Exception("No network found")
         return self._network
 
+    @property
+    async def labels(self):
+        if not hasattr(self, '_labels'):
+            container = await self.container
+            self._labels = container['Config']['Labels']
+        return self._labels
+
+    @property
+    async def project(self):
+        if not hasattr(self, '_project'):
+            self._project = (await self.labels)['com.docker.compose.project']
+        return self._project
+
     async def join_public_network(self, project_id):
         for container in await self.docker.containers(
                 filters={
@@ -84,6 +97,17 @@ class Application(web.Application):
                          container['Id'], await self.network)
             await self.docker.connect_container_to_network(
                 container['Id'], await self.network)
+
+    async def restart_proxy(self):
+        for container in await self.docker.containers(
+                filters={
+                    'label': [
+                        "com.docker.compose.project=" + (await self.project),
+                        "com.docker.compose.service=proxy",
+                    ]
+                }):
+            logger.debug("Restarting proxy %s..." % container['Id'])
+            await self.docker.restart(container['Id'])
 
     async def get_resource_id(self, subject):
         result = await self.sparql.query("""
