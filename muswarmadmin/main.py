@@ -100,6 +100,7 @@ class Application(web.Application):
 
     async def restart_proxy(self):
         for container in await self.docker.containers(
+                all=True,
                 filters={
                     'label': [
                         "com.docker.compose.project=" + (await self.project),
