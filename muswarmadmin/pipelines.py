@@ -27,34 +27,49 @@ _state_to_action = {
 }
 
 
+actions_pending = {}
+
+
 async def do_action(app, project_id, args, end_state):
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
-    proc = await app.run_command("docker-compose", *args,
-                                 cwd="/data/%s" % project_id)
-    if proc.returncode is not 0:
-        await app.update_state(project_id, SwarmUI.Error)
-    else:
-        await app.update_state(project_id, end_state)
+    actions_pending[project_id] = end_state
+    try:
+        proc = await app.run_command("docker-compose", *args,
+                                     cwd="/data/%s" % project_id)
+        if proc.returncode is not 0:
+            await app.update_state(project_id, SwarmUI.Error)
+        else:
+            await app.update_state(project_id, end_state)
+    finally:
+        del actions_pending[project_id]
 
 
 async def up_action(app, project_id):
     logger.info("Changing pipeline %s status to %s", project_id, SwarmUI.Up)
-    proc = await app.run_command("docker-compose", "up", "-d",
-                                 cwd="/data/%s" % project_id,
-                                 timeout=app.compose_up_timeout)
-    await app.join_public_network(project_id)
-    await app.restart_proxy()
-    if proc.returncode is not 0:
-        await app.update_state(project_id, SwarmUI.Error)
-    else:
-        await app.update_state(project_id, SwarmUI.Up)
+    actions_pending[project_id] = SwarmUI.Up
+    try:
+        proc = await app.run_command("docker-compose", "up", "-d",
+                                     cwd="/data/%s" % project_id,
+                                     timeout=app.compose_up_timeout)
+        await app.join_public_network(project_id)
+        await app.restart_proxy()
+        if proc.returncode is not 0:
+            await app.update_state(project_id, SwarmUI.Error)
+        else:
+            await app.update_state(project_id, SwarmUI.Up)
+    finally:
+        del actions_pending[project_id]
 
 
 async def restart_action(app, project_id):
     logger.info("Restarting pipeline %s", project_id)
-    await app.run_command("docker-compose", "restart",
-                          cwd="/data/%s" % project_id)
-    await app.update_state(project_id, SwarmUI.Up)
+    actions_pending[project_id] = "restart"
+    try:
+        await app.run_command("docker-compose", "restart",
+                              cwd="/data/%s" % project_id)
+        await app.update_state(project_id, SwarmUI.Up)
+    finally:
+        del actions_pending[project_id]
 
 
 async def update(app, inserts, deletes):
@@ -64,6 +79,8 @@ async def update(app, inserts, deletes):
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
                 project_id = await app.get_resource_id(subject)
+                if project_id in actions_pending:
+                    continue
                 await app.reset_status_requested(project_id)
                 if triple.o == SwarmUI.Up:
                     await app.update_state(project_id, SwarmUI.Starting)
@@ -83,6 +100,8 @@ async def update(app, inserts, deletes):
                 if not triple.o == "true":
                     continue
                 project_id = await app.get_resource_id(subject)
+                if project_id in actions_pending:
+                    continue
                 await app.reset_restart_requested(project_id)
                 await app.update_state(project_id, SwarmUI.Restarting)
                 ensure_future(restart_action(app, project_id))
