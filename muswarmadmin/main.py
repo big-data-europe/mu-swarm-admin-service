@@ -82,6 +82,7 @@ class Application(web.Application):
         return self._project
 
     async def join_public_network(self, project_id):
+        network = await self.network
         for container in await self.docker.containers(
                 filters={
                     'label': "com.docker.compose.project=" + project_id.lower()
@@ -93,10 +94,12 @@ class Application(web.Application):
             ])
             if 'VIRTUAL_HOST' not in env:
                 continue
+            if network in container['NetworkSettings']['Networks']:
+                continue
             logger.debug("Connecting container %s to network %s...",
-                         container['Id'], await self.network)
-            await self.docker.connect_container_to_network(
-                container['Id'], await self.network)
+                         container['Id'], network)
+            await self.docker.connect_container_to_network(container['Id'],
+                                                           network)
 
     async def restart_proxy(self):
         for container in await self.docker.containers(
