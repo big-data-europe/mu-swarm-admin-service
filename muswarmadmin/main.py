@@ -146,6 +146,18 @@ class Application(web.Application):
             }
             """, uuid=escape_string(uuid), new_state=state)
 
+    async def reset_status_requested(self, uuid):
+        await self.sparql.update("""
+            WITH {{graph}}
+            DELETE {
+                ?s swarmui:requestedStatus ?oldvalue .
+            }
+            WHERE {
+                ?s mu:uuid {{uuid}} ;
+                  swarmui:requestedStatus ?oldvalue .
+            }
+            """, uuid=escape_string(uuid))
+
     async def reset_restart_requested(self, uuid):
         await self.sparql.update("""
             WITH {{graph}}

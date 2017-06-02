@@ -30,11 +30,15 @@ _state_to_action = {
 
 async def do_action(app, project_id, args, end_state):
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
-    await app.run_command("docker-compose", *args, cwd="/data/%s" % project_id)
+    proc = await app.run_command("docker-compose", *args,
+                                 cwd="/data/%s" % project_id)
     if end_state == SwarmUI.Up:
         await app.join_public_network(project_id)
         await app.restart_proxy()
-    await app.update_state(project_id, end_state)
+    if proc.returncode is not 0:
+        await app.update_state(project_id, SwarmUI.Error)
+    else:
+        await app.update_state(project_id, end_state)
 
 
 async def restart_action(app, project_id):
@@ -51,6 +55,7 @@ async def update(app, inserts, deletes):
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
                 project_id = await app.get_resource_id(subject)
+                await app.reset_status_requested(project_id)
                 if triple.o in _state_to_action:
                     args, pending_state, end_state = _state_to_action[triple.o]
                     await app.update_state(project_id, pending_state)
