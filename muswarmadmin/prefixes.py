@@ -9,6 +9,7 @@ class SwarmUI(Namespace):
     __iri__ = IRI("http://swarmui.semte.ch/vocabularies/core/")
 
     Down = PrefixedName
+    Error = PrefixedName
     Restarting = PrefixedName
     Scaling = PrefixedName
     Service = PrefixedName
