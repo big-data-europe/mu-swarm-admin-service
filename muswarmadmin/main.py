@@ -207,16 +207,16 @@ class Application(web.Application):
             raise KeyError("service %r not found" % service_id)
         return result['results']['bindings'][0]['uuid']['value']
 
-    async def run_command(self, *args, logging=True, **kwargs):
+    async def run_command(self, *args, logging=True, timeout=None, **kwargs):
+        if timeout is None:
+            timeout = self.run_command_timeout
         proc = await asyncio.create_subprocess_exec(
             *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
         try:
             if logging:
-                await asyncio.wait_for(self._log_process_output(proc),
-                                       self.run_command_timeout)
+                await asyncio.wait_for(self._log_process_output(proc), timeout)
             else:
-                await asyncio.wait_for(proc.wait(),
-                                       self.run_command_timeout)
+                await asyncio.wait_for(proc.wait(), timeout)
         except asyncio.TimeoutError:
             logger.warn(
                 "Child process %d awaited for too long, terminating...",
