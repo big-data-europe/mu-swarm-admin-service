@@ -26,6 +26,7 @@ else:
 
 class Application(web.Application):
     run_command_timeout = 600
+    compose_up_timeout = 1800
     base_resource = IRI("http://swarm-ui.big-data-europe.eu/resources/")
 
     @property
