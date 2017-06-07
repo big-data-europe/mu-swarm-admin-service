@@ -11,6 +11,7 @@ from os import environ as ENV
 import re
 import subprocess
 
+from muswarmadmin.actionscheduler import ActionScheduler
 from muswarmadmin.delta import update
 from muswarmadmin.services import logs
 
@@ -244,7 +245,15 @@ class Application(web.Application):
         await asyncio.gather(self._log_streamreader(proc.stdout),
                              self._log_streamreader(proc.stderr))
 
+    async def enqueue_action(self, key, action, args):
+        await ActionScheduler.execute(key, action, args, loop=self.loop)
+
+
+async def stop_action_schedulers(app):
+    await ActionScheduler.graceful_cancel()
+
 
 app = Application()
+app.on_cleanup.append(stop_action_schedulers)
 app.router.add_post("/update", update)
 app.router.add_get("/services/{id}/logs", logs)
