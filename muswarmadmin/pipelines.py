@@ -22,6 +22,7 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
 
 _state_to_action = {
     SwarmUI.Down: (["down"], SwarmUI.Stopping),
+    SwarmUI.Started: (["start"], SwarmUI.Starting),
     SwarmUI.Stopped: (["stop"], SwarmUI.Stopping),
 }
 
