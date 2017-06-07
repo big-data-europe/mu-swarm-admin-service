@@ -13,6 +13,7 @@ class SwarmUI(Namespace):
     Restarting = PrefixedName
     Scaling = PrefixedName
     Service = PrefixedName
+    Started = PrefixedName
     Starting = PrefixedName
     Stopped = PrefixedName
     Stopping = PrefixedName
