@@ -39,6 +39,7 @@ async def initialize_pipeline(app, repository, pipeline):
                                     repository)
     repository_info, = tuple(result.values())
     location = repository_info[Doap.location][0]['value']
+    branch = repository_info[SwarmUI.branch][0]['value']
     project_id = await app.get_resource_id(pipeline)
     logger.info("Initializing pipeline %s", project_id)
     try:
@@ -52,9 +53,10 @@ async def initialize_pipeline(app, repository, pipeline):
     repo.create_remote('origin', location)
     try:
         repo.remotes.origin.fetch()
-        repo.create_head('master', repo.remotes.origin.refs.master)\
-            .set_tracking_branch(repo.remotes.origin.refs.master)
-        repo.heads.master.checkout()
+        remote = repo.remotes.origin.refs[branch or 'master']
+        head = repo.create_head(branch or 'master', remote)
+        head.set_tracking_branch(remote)
+        head.checkout()
     except Exception:
         logger.exception(
             "can not pull from the repository %s",
