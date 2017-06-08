@@ -4,7 +4,7 @@
 
 if [ "${ENV:0:3}" == dev ]; then
 	pip install aiohttp-devtools
-	exec adev runserver -p $PORT /src/muswarmadmin
+	exec adev runserver -p $PORT --no-pre-check /src/muswarmadmin
 fi
 
 exec /src/run.py

@@ -1,7 +1,6 @@
 from aiohttp import web
 from aiosparql.escape import escape_any
 from aiosparql.syntax import Literal
-from asyncio import ensure_future
 import logging
 
 from muswarmadmin.prefixes import SwarmUI
@@ -13,14 +12,16 @@ logger = logging.getLogger(__name__)
 
 async def restart_action(app, project_id, service_id):
     logger.info("Restarting service %s", service_id)
+    await app.update_state(service_id, SwarmUI.Restarting)
     service_name = await app.get_dct_title(service_id)
-    await app.run_command(
-        "docker-compose", "restart", service_name, cwd="/data/%s" % project_id)
+    await app.run_command("docker-compose", "restart", service_name,
+                          cwd="/data/%s" % project_id)
     await app.update_state(service_id, SwarmUI.Up)
 
 
 async def scaling_action(app, project_id, service_id, value):
     logger.info("Scaling service %s to %s", service_id, value)
+    await app.update_state(service_id, SwarmUI.Scaling)
     service_name = await app.get_dct_title(service_id)
     await app.sparql.update("""
         WITH {{graph}}
@@ -51,20 +52,16 @@ async def update(app, inserts, deletes):
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
                 await app.reset_restart_requested(service_id)
-                await app.update_state(service_id, SwarmUI.Restarting)
-                ensure_future(restart_action(app, project_id, service_id))
-                # we don't want any other action on this service
-                break
+                await app.enqueue_action(project_id, restart_action,
+                                         [app, project_id, service_id])
             elif triple.p == SwarmUI.scaling:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
-                await app.update_state(service_id, SwarmUI.Scaling)
-                ensure_future(scaling_action(app, project_id, service_id,
-                                             int(triple.o.value)))
-                # we don't want any other action on this service
-                break
+                await app.enqueue_action(
+                    project_id, scaling_action,
+                    [app, project_id, service_id, int(triple.o.value)])
 
 
 async def logs(request):
