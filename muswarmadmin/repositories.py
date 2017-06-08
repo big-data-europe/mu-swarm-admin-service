@@ -38,9 +38,15 @@ async def initialize_pipeline(app, repository, pipeline):
     result = await app.sparql.query("WITH {{graph}} DESCRIBE {{}}",
                                     repository)
     repository_info, = tuple(result.values())
-    location = repository_info[Doap.location][0]['value']
-    branch = repository_info[SwarmUI.branch][0]['value']
+    location = repository_info.get(Doap.location, [{'value': ''}])[0]['value']
+    branch = repository_info.get(SwarmUI.branch, [{'value': ''}])[0]['value']
+    repository_id = await app.get_resource_id(repository)
     project_id = await app.get_resource_id(pipeline)
+    if not location:
+        logger.error("Pipeline %s: can not clone repository %s, location not "
+                     "specified", project_id, repository_id)
+        await app.update_state(project_id, SwarmUI.Error)
+        return
     logger.info("Initializing pipeline %s", project_id)
     try:
         git.Repo('/data/%s' % project_id)
