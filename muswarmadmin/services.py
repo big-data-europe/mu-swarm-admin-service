@@ -89,7 +89,7 @@ async def update(app, inserts, deletes):
                 await app.reset_restart_requested(service_id)
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id, service_id])
-            elif triple.p == SwarmUI.scaling:
+            elif triple.p == SwarmUI.requestedScaling:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
                 service_id = await app.get_resource_id(subject)
