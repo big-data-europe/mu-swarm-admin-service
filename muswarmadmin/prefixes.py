@@ -20,6 +20,7 @@ class SwarmUI(Namespace):
     Up = PrefixedName
     branch = PrefixedName
     pipelines = PrefixedName
+    requestedScaling = PrefixedName
     requestedStatus = PrefixedName
     restartRequested = PrefixedName
     scaling = PrefixedName
