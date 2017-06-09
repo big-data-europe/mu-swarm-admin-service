@@ -33,7 +33,11 @@ class ActionScheduler:
                 action, args = await self.queue.get()
                 logger.debug("Executer %s: running action %r with args: %r",
                              self.name, action, args)
-                await action(*args)
+                try:
+                    await action(*args)
+                except Exception:
+                    logger.exception("Action %r with arguments %r failed",
+                                     action, args)
                 self.queue.task_done()
         except asyncio.CancelledError:
             logger.debug("Executer %s is finished", self.name)
