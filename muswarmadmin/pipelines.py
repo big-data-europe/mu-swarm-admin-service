@@ -4,6 +4,7 @@ import logging
 from shutil import rmtree
 
 from muswarmadmin.prefixes import Mu, SwarmUI
+from muswarmadmin.actionscheduler import StopScheduler
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     await app.run_command(
         "docker-compose", "down", cwd="/data/%s" % project_id)
     rmtree(repo.working_dir)
+    raise StopScheduler()
 
 
 _state_to_action = {

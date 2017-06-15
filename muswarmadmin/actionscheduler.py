@@ -5,6 +5,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class StopScheduler(Exception):
+    pass
+
+
 class ActionScheduler:
     executers = {}
 
@@ -35,11 +39,18 @@ class ActionScheduler:
                              self.name, action, args)
                 try:
                     await action(*args)
+                except StopScheduler:
+                    raise
                 except Exception:
                     logger.exception("Action %r with arguments %r failed",
                                      action, args)
-                self.queue.task_done()
+                finally:
+                    self.queue.task_done()
+        except StopScheduler:
+            del ActionScheduler.executers[self.name]
         except asyncio.CancelledError:
+            pass
+        finally:
             logger.debug("Executer %s is finished", self.name)
 
     async def cancel(self):
