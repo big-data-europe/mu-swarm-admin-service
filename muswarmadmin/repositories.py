@@ -21,8 +21,10 @@ async def _insert_triples(app, project_id, pipeline):
         triples.append(Node(service_iri, {
             Mu.uuid: service_id,
             Dct.title: service['name'],
-            SwarmUI.scaling: 1,
+            SwarmUI.scaling: 0,
+            SwarmUI.requestedScaling: 0,
             RDF.type: SwarmUI.Service,
+            SwarmUI.status: SwarmUI.Stopped,
         }))
     await app.sparql.update("""
         PREFIX : {{services_iri}}

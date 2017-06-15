@@ -13,6 +13,8 @@ import subprocess
 
 from muswarmadmin.actionscheduler import ActionScheduler
 from muswarmadmin.delta import update
+from muswarmadmin.eventmonitor import event_monitor
+from muswarmadmin.prefixes import SwarmUI
 from muswarmadmin.services import logs
 
 
@@ -248,12 +250,121 @@ class Application(web.Application):
     async def enqueue_action(self, key, action, args):
         await ActionScheduler.execute(key, action, args, loop=self.loop)
 
+    async def event_container(self, event):
+        if event["Action"] == "start":
+            await self.event_container_started(event)
+        elif event["Action"] == "die":
+            await self.event_container_died(event)
+
+    async def event_container_started(self, event):
+        attr = event["Actor"]["Attributes"]
+        project_name = attr.get("com.docker.compose.project")
+        service_name = attr.get("com.docker.compose.service")
+        container_number = int(attr.get("com.docker.compose.container-number"))
+        if not (project_name and service_name):
+            return
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?pipeline swarmui:status ?oldpipelinestate .
+                ?service swarmui:status ?oldservicestate ;
+                  swarmui:scaling ?oldscaling .
+            }
+            INSERT {
+                ?pipeline swarmui:status swarmui:Started .
+                ?service swarmui:status swarmui:Started ;
+                  swarmui:scaling ?newscaling .
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:status ?oldpipelinestate ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} ;
+                  swarmui:scaling ?oldscaling ;
+                  swarmui:status ?oldservicestate .
+
+                BIND(IF(?oldscaling > {{scaling}},
+                  ?oldscaling, {{scaling}}) AS ?newscaling) .
+            }
+            """, project_id=escape_string(project_name.upper()),
+            service_name=escape_string(service_name),
+            scaling=container_number)
+
+    async def event_container_died(self, event):
+        attr = event["Actor"]["Attributes"]
+        project_name = attr.get("com.docker.compose.project")
+        service_name = attr.get("com.docker.compose.service")
+        container_number = int(attr.get("com.docker.compose.container-number"))
+        if not (project_name and service_name):
+            return
+        service_status = (
+            SwarmUI.Started if container_number > 1 else SwarmUI.Stopped
+        )
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?pipeline swarmui:status ?oldpipelinestate .
+                ?service swarmui:status ?oldservicestate ;
+                  swarmui:scaling ?oldscaling .
+            }
+            INSERT {
+                ?pipeline swarmui:status ?newstate .
+                ?service swarmui:status {{service_status}} ;
+                  swarmui:scaling ?newscaling .
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:status ?oldpipelinestate ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} ;
+                  swarmui:scaling ?oldscaling ;
+                  swarmui:status ?oldservicestate .
+
+                BIND(IF(?oldscaling < {{scaling}},
+                  ?oldscaling, {{scaling}}) AS ?newscaling) .
+
+                OPTIONAL {
+                    ?pipeline swarmui:services ?otherservice .
+                    ?otherservice swarmui:status swarmui:Started ;
+                      dct:title ?otherservicetitle .
+                    FILTER ( ?otherservicetitle != {{service_name}} )
+                } .
+
+                BIND(IF(BOUND(?otherservice), swarmui:Started, swarmui:Stopped)
+                  AS ?newstate) .
+            }
+            """,
+            project_id=escape_string(project_name.upper()),
+            service_name=escape_string(service_name),
+            scaling=(container_number - 1),
+            service_status=service_status)
+
 
 async def stop_action_schedulers(app):
     await ActionScheduler.graceful_cancel()
 
 
+async def start_event_monitor(app):
+    app['event_monitor'] = app.loop.create_task(
+        event_monitor(app.docker, {"container": [app.event_container]}))
+
+
+async def stop_event_monitor(app):
+    app['event_monitor'].cancel()
+    await app['event_monitor']
+
+
 app = Application()
 app.on_cleanup.append(stop_action_schedulers)
+app.on_startup.append(start_event_monitor)
+app.on_cleanup.append(stop_event_monitor)
 app.router.add_post("/update", update)
 app.router.add_get("/services/{id}/logs", logs)
