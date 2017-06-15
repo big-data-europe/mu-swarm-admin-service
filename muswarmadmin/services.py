@@ -36,7 +36,7 @@ async def restart_action(app, project_id, service_id):
     service_name = await app.get_dct_title(service_id)
     await app.run_command("docker-compose", "restart", service_name,
                           cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Up)
+    await app.update_state(service_id, SwarmUI.Started)
 
 
 async def scaling_action(app, project_id, service_id, value):
@@ -58,7 +58,7 @@ async def scaling_action(app, project_id, service_id, value):
     await app.run_command(
         "docker-compose", "scale", "%s=%d" % (service_name, value),
         cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Up)
+    await app.update_state(service_id, SwarmUI.Started)
 
 
 async def update(app, inserts, deletes):

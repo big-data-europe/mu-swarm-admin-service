@@ -25,6 +25,7 @@ class SwarmUI(Namespace):
     restartRequested = PrefixedName
     scaling = PrefixedName
     services = PrefixedName
+    status = PrefixedName
 
 
 class Mu(Namespace):
