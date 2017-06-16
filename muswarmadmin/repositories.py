@@ -22,7 +22,6 @@ async def _insert_triples(app, project_id, pipeline):
             Mu.uuid: service_id,
             Dct.title: service['name'],
             SwarmUI.scaling: 0,
-            SwarmUI.requestedScaling: 0,
             RDF.type: SwarmUI.Service,
             SwarmUI.status: SwarmUI.Stopped,
         }))
