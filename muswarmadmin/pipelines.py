@@ -36,8 +36,10 @@ async def do_action(app, project_id, args, pending_state, end_state):
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
-    else:
-        await app.update_state(project_id, end_state)
+    elif end_state == SwarmUI.Down:
+        # NOTE: enforce state Down to indicate that the action was Down and not
+        #       Stopped
+        await app.update_state(project_id, SwarmUI.Down)
 
 
 async def up_action(app, project_id):
@@ -51,6 +53,8 @@ async def up_action(app, project_id):
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
+        # NOTE: enforce state Up to indicate that the action was Up and not
+        #       Started
         await app.update_state(project_id, SwarmUI.Up)
 
 
@@ -59,7 +63,6 @@ async def restart_action(app, project_id):
     await app.update_state(project_id, SwarmUI.Restarting)
     await app.run_command("docker-compose", "restart",
                           cwd="/data/%s" % project_id)
-    await app.update_state(project_id, SwarmUI.Up)
 
 
 async def update(app, inserts, deletes):

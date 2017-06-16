@@ -26,17 +26,16 @@ async def do_action(app, project_id, service_id,
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(service_id, SwarmUI.Error)
-    else:
-        await app.update_state(service_id, end_state)
 
 
 async def restart_action(app, project_id, service_id):
     logger.info("Restarting service %s", service_id)
     await app.update_state(service_id, SwarmUI.Restarting)
     service_name = await app.get_dct_title(service_id)
-    await app.run_command("docker-compose", "restart", service_name,
-                          cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Started)
+    proc = await app.run_command("docker-compose", "restart", service_name,
+                                 cwd="/data/%s" % project_id)
+    if proc.returncode is not 0:
+        await app.update_state(service_id, SwarmUI.Error)
 
 
 async def scaling_action(app, project_id, service_id, value):
@@ -55,10 +54,11 @@ async def scaling_action(app, project_id, service_id, value):
             ?s mu:uuid {{uuid}} .
             OPTIONAL { ?s swarmui:scaling ?oldvalue } .
         }""", uuid=escape_any(service_id), value=escape_any(value))
-    await app.run_command(
+    proc = await app.run_command(
         "docker-compose", "scale", "%s=%d" % (service_name, value),
         cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Started)
+    if proc.returncode is not 0:
+        await app.update_state(service_id, SwarmUI.Error)
 
 
 async def update(app, inserts, deletes):
