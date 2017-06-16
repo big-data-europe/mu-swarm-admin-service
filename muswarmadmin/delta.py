@@ -121,22 +121,22 @@ async def update(request):
     except StopIteration:
         raise web.HTTPNoContent()
 
-    await repositories.update(
+    request.app.loop.create_task(repositories.update(
         request.app,
         *filter_objects(
             first_data,
-            request.app.base_resource + "repositories/"))
+            request.app.base_resource + "repositories/")))
 
-    await pipelines.update(
+    request.app.loop.create_task(pipelines.update(
         request.app,
         *filter_objects(
             first_data,
-            request.app.base_resource + "pipeline-instances/"))
+            request.app.base_resource + "pipeline-instances/")))
 
-    await services.update(
+    request.app.loop.create_task(services.update(
         request.app,
         *filter_objects(
             first_data,
-            request.app.base_resource + "services/"))
+            request.app.base_resource + "services/")))
 
     raise web.HTTPNoContent()
