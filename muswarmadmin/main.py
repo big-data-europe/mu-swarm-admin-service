@@ -168,12 +168,9 @@ class Application(web.Application):
             DELETE {
                 ?s swarmui:restartRequested ?oldvalue .
             }
-            INSERT {
-                ?s swarmui:restartRequested "false" .
-            }
             WHERE {
-                ?s mu:uuid {{uuid}} .
-                OPTIONAL { ?s swarmui:restartRequested ?oldvalue } .
+                ?s mu:uuid {{uuid}} ;
+                  swarmui:restartRequested ?oldvalue .
             }
             """, uuid=escape_string(uuid))
 
