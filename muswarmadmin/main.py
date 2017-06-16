@@ -348,6 +348,11 @@ class Application(web.Application):
             service_status=service_status)
 
 
+async def stop_cleanup(app):
+    app.sparql.close()
+    app.docker.close()
+
+
 async def stop_action_schedulers(app):
     await ActionScheduler.graceful_cancel()
 
@@ -366,5 +371,6 @@ app = Application()
 app.on_cleanup.append(stop_action_schedulers)
 app.on_startup.append(start_event_monitor)
 app.on_cleanup.append(stop_event_monitor)
+app.on_cleanup.append(stop_cleanup)
 app.router.add_post("/update", update)
 app.router.add_get("/services/{id}/logs", logs)
