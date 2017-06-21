@@ -46,12 +46,14 @@ async def up_action(app, project_id):
     proc = await app.run_command("docker-compose", "up", "-d",
                                  cwd="/data/%s" % project_id,
                                  timeout=app.compose_up_timeout)
-    await app.join_public_network(project_id)
-    await app.restart_proxy()
-    if proc.returncode is not 0:
-        await app.update_state(project_id, SwarmUI.Error)
-    else:
-        await app.update_state(project_id, SwarmUI.Up)
+    try:
+        await app.join_public_network(project_id)
+        await app.restart_proxy()
+    finally:
+        if proc.returncode is not 0:
+            await app.update_state(project_id, SwarmUI.Error)
+        else:
+            await app.update_state(project_id, SwarmUI.Up)
 
 
 async def restart_action(app, project_id):
