@@ -16,4 +16,6 @@ async def event_monitor(docker, handlers):
                     except Exception:
                         logger.exception("Event handler %r failed", handler)
     except asyncio.CancelledError:
+        pass
+    finally:
         logger.debug("Event monitor stopped")
