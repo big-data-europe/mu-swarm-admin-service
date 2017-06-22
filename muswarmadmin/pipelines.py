@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 async def shutdown_and_cleanup_pipeline(app, project_id):
+    """
+    Shutdown a pipeline with docker-compose down, then remove the entire
+    PIPELINE source directory
+    """
     logger.info("Shutting down and cleaning up pipeline %s", project_id)
     try:
         repo = git.Repo('/data/%s' % project_id)
@@ -30,6 +34,9 @@ _state_to_action = {
 
 
 async def do_action(app, project_id, args, pending_state, end_state):
+    """
+    Action triggered for any change of swarmui:requestedStatus but swarmui:Up
+    """
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
     await app.update_state(project_id, pending_state)
     proc = await app.run_command("docker-compose", *args,
@@ -41,6 +48,9 @@ async def do_action(app, project_id, args, pending_state, end_state):
 
 
 async def up_action(app, project_id):
+    """
+    Action triggered when swarmui:requestedStatus change
+    """
     logger.info("Changing pipeline %s status to %s", project_id, SwarmUI.Up)
     await app.update_state(project_id, SwarmUI.Starting)
     proc = await app.run_command("docker-compose", "up", "-d",
@@ -53,6 +63,9 @@ async def up_action(app, project_id):
 
 
 async def restart_action(app, project_id):
+    """
+    Action triggered when swarmui:restartRequested has become true
+    """
     logger.info("Restarting pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Restarting)
     await app.run_command("docker-compose", "restart",
@@ -61,6 +74,9 @@ async def restart_action(app, project_id):
 
 
 async def update(app, inserts, deletes):
+    """
+    Handler for the updates of the pipelines received by the Delta service
+    """
     for subject, triples in inserts.items():
         for triple in triples:
             if triple.p == SwarmUI.requestedStatus:

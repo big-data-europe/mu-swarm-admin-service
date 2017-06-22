@@ -28,18 +28,29 @@ else:
 
 
 class Application(web.Application):
+    # NOTE: timeout allowed to a docker-compose command to proceed. If the time
+    #       exceeds. If the time exceed, the application is killed.
     run_command_timeout = 600
+    # NOTE: timeout allowed to docker-compose up command to proceed. If the
+    #       time exceeds, the application is killed.
     compose_up_timeout = 1800
+    # NOTE: base IRI used for all the resources managed by this service.
     base_resource = IRI("http://swarm-ui.big-data-europe.eu/resources/")
 
     @property
     def sparql(self):
+        """
+        The SPARQL client
+        """
         if not hasattr(self, '_sparql'):
             self._sparql = SPARQLClient(loop=self.loop)
         return self._sparql
 
     @property
     def docker(self):
+        """
+        The Docker client
+        """
         if not hasattr(self, '_docker'):
             docker_args = docker.utils.utils.kwargs_from_env()
             self._docker = aiodockerpy.api.client.APIClient(
@@ -48,6 +59,10 @@ class Application(web.Application):
 
     @property
     async def container(self):
+        """
+        The container running this application. Returns a dict which is the
+        result of a docker inspect.
+        """
         if not hasattr(self, '_container'):
             regex = re.compile(r"/docker[/-]([a-f0-9]{64})(\.scope)?$")
             with open("/proc/self/cgroup") as fh:
@@ -63,6 +78,9 @@ class Application(web.Application):
 
     @property
     async def network(self):
+        """
+        The first network used by the container running this application
+        """
         if not hasattr(self, '_network'):
             try:
                 container = await self.container
@@ -74,6 +92,9 @@ class Application(web.Application):
 
     @property
     async def labels(self):
+        """
+        The labels of the container running this application
+        """
         if not hasattr(self, '_labels'):
             container = await self.container
             self._labels = container['Config']['Labels']
@@ -81,11 +102,18 @@ class Application(web.Application):
 
     @property
     async def project(self):
+        """
+        The Docker Compose project of the container running this application
+        """
         if not hasattr(self, '_project'):
             self._project = (await self.labels)['com.docker.compose.project']
         return self._project
 
     async def join_public_network(self, container_id):
+        """
+        An helper method that makes a container join the application's own
+        network
+        """
         network = await self.network
         container = await self.docker.inspect_container(container_id)
         env = dict([
@@ -103,6 +131,10 @@ class Application(web.Application):
         return True
 
     async def restart_proxy(self):
+        """
+        An helper method that restarts the service "proxy" of the running
+        application
+        """
         for container in await self.docker.containers(
                 all=True,
                 filters={
@@ -115,6 +147,9 @@ class Application(web.Application):
             await self.docker.restart(container['Id'])
 
     async def get_resource_id(self, subject):
+        """
+        Get the mu:uuid of a subject IRI
+        """
         result = await self.sparql.query("""
             SELECT ?o
             FROM {{graph}}
@@ -126,12 +161,20 @@ class Application(web.Application):
         return result['results']['bindings'][0]['o']['value']
 
     async def ensure_resource_id_exists(self, resource_id):
+        """
+        Return True if the resource ID given in parameter exists in the
+        database. Otherwise return False.
+        """
         result = await self.sparql.query("""
             ASK FROM {{graph}} WHERE { ?s mu:uuid {{}} }
             """, escape_string(resource_id))
         return result['boolean']
 
     def open_compose_data(self, project_id):
+        """
+        Use Docker Compose to load the data of a project given in parameter.
+        Return a Docker Compose data object.
+        """
         project_dir = '/data/%s' % project_id
         config_files = config.config.get_default_config_files(project_dir)
         environment = Environment.from_env_file(project_dir)
@@ -139,6 +182,9 @@ class Application(web.Application):
         return config.load(config_details)
 
     async def update_state(self, uuid, state):
+        """
+        Helper that update the swarmui:status of a node given in parameter
+        """
         await self.sparql.update("""
             WITH {{graph}}
             DELETE {
@@ -154,6 +200,10 @@ class Application(web.Application):
             """, uuid=escape_string(uuid), new_state=state)
 
     async def reset_status_requested(self, uuid):
+        """
+        Helper that removes any swarmui:requestedStatus triple of a node
+        given in parameter
+        """
         await self.sparql.update("""
             WITH {{graph}}
             DELETE {
@@ -166,6 +216,10 @@ class Application(web.Application):
             """, uuid=escape_string(uuid))
 
     async def reset_restart_requested(self, uuid):
+        """
+        Helper that removes any swarmui:restartRequested triple of a node
+        given in parameter
+        """
         await self.sparql.update("""
             WITH {{graph}}
             DELETE {
@@ -178,6 +232,9 @@ class Application(web.Application):
             """, uuid=escape_string(uuid))
 
     async def get_dct_title(self, uuid):
+        """
+        Get the dct:title of a node
+        """
         result = await self.sparql.query("""
             SELECT ?title
             FROM {{graph}}
@@ -193,6 +250,9 @@ class Application(web.Application):
         return result['results']['bindings'][0]['title']['value']
 
     async def get_service_pipeline(self, service_id):
+        """
+        Get the pipeline ID of a service given in paramater
+        """
         result = await self.sparql.query("""
             SELECT ?uuid
             FROM {{graph}}
@@ -212,6 +272,10 @@ class Application(web.Application):
         return result['results']['bindings'][0]['uuid']['value']
 
     async def run_command(self, *args, logging=True, timeout=None, **kwargs):
+        """
+        Run a subprocess, log the output, wait for its execution to complete,
+        timeout eventually. Return a process object.
+        """
         if timeout is None:
             timeout = self.run_command_timeout
         proc = await asyncio.create_subprocess_exec(
@@ -235,6 +299,9 @@ class Application(web.Application):
     _control_char_re = re.compile(r'[\x00-\x1f\x7f-\x9f]')
 
     async def _log_streamreader(self, reader):
+        """
+        Helper method that the output of a StreamReader object to the logger
+        """
         while True:
             line = await reader.readline()
             if not line:
@@ -244,22 +311,42 @@ class Application(web.Application):
                 logger.info(line)
 
     async def _log_process_output(self, proc):
+        """
+        Gather two futures that will log the STDOUT and STDERR of a subprocess
+        """
         await asyncio.gather(self._log_streamreader(proc.stdout),
                              self._log_streamreader(proc.stderr))
 
     async def enqueue_action(self, key, action, args):
+        """
+        Enqueue an action in the queue of an ActionScheduler. The
+        ActionScheduler is determined by the key. The action will be executed
+        serially after all previous actions have finished.
+        """
         await ActionScheduler.execute(key, action, args, loop=self.loop)
 
     async def enqueue_one_action(self, key, action, args):
+        """
+        Enqueue an action in the queue of a OneActionScheduler. The
+        OneActionScheduler is determined by the key. The action will be
+        executed serially after any running action has completed. If an action
+        already exists in the queue, the new action will be discarded.
+        """
         await OneActionScheduler.execute(key, action, args, loop=self.loop)
 
     async def event_container(self, event):
+        """
+        This method receive the event from the Docker client
+        """
         if event["Action"] == "start":
             await self.event_container_started(event)
         elif event["Action"] == "die":
             await self.event_container_died(event)
 
     async def event_container_started(self, event):
+        """
+        Watch for container "starting" event
+        """
         container_id = event["Actor"]["ID"]
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
@@ -305,6 +392,9 @@ class Application(web.Application):
             await self.enqueue_one_action("proxy", self.restart_proxy, [])
 
     async def event_container_died(self, event):
+        """
+        Watch for container "dying" event
+        """
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
         service_name = attr.get("com.docker.compose.service")
@@ -363,21 +453,35 @@ class Application(web.Application):
 
 
 async def stop_cleanup(app):
+    """
+    Properly close SPARQL and Docker client
+    """
     app.sparql.close()
     app.docker.close()
 
 
 async def stop_action_schedulers(app):
+    """
+    Stop all action schedulers. This will wait for all actions to be completed
+    before ending. All the actions in all ActionSchedulers queue will be
+    executed and awaited before leaving.
+    """
     await ActionScheduler.graceful_cancel()
     await OneActionScheduler.graceful_cancel()
 
 
 async def start_event_monitor(app):
+    """
+    Start the Docker event monitor
+    """
     app['event_monitor'] = app.loop.create_task(
         event_monitor(app.docker, {"container": [app.event_container]}))
 
 
 async def stop_event_monitor(app):
+    """
+    Cancel event monitor
+    """
     app['event_monitor'].cancel()
     await app['event_monitor']
 
