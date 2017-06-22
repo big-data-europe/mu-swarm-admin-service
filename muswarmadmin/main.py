@@ -85,25 +85,22 @@ class Application(web.Application):
             self._project = (await self.labels)['com.docker.compose.project']
         return self._project
 
-    async def join_public_network(self, project_id):
+    async def join_public_network(self, container_id):
         network = await self.network
-        for container in await self.docker.containers(
-                filters={
-                    'label': "com.docker.compose.project=" + project_id.lower()
-                }):
-            container = await self.docker.inspect_container(container)
-            env = dict([
-                x.split('=', 1)
-                for x in container['Config']['Env']
-            ])
-            if 'VIRTUAL_HOST' not in env:
-                continue
-            if network in container['NetworkSettings']['Networks']:
-                continue
-            logger.debug("Connecting container %s to network %s...",
-                         container['Id'], network)
-            await self.docker.connect_container_to_network(container['Id'],
-                                                           network)
+        container = await self.docker.inspect_container(container_id)
+        env = dict([
+            x.split('=', 1)
+            for x in container['Config']['Env']
+        ])
+        if 'VIRTUAL_HOST' not in env:
+            return False
+        if network in container['NetworkSettings']['Networks']:
+            return False
+        logger.debug("Connecting container %s to network %s...",
+                     container_id, network)
+        await self.docker.connect_container_to_network(container_id,
+                                                       network)
+        return True
 
     async def restart_proxy(self):
         for container in await self.docker.containers(
@@ -127,6 +124,12 @@ class Application(web.Application):
             }
             """, subject)
         return result['results']['bindings'][0]['o']['value']
+
+    async def ensure_resource_id_exists(self, resource_id):
+        result = await self.sparql.query("""
+            ASK FROM {{graph}} WHERE { ?s mu:uuid {{}} }
+            """, escape_string(resource_id))
+        return result['boolean']
 
     def open_compose_data(self, project_id):
         project_dir = '/data/%s' % project_id
@@ -257,11 +260,15 @@ class Application(web.Application):
             await self.event_container_died(event)
 
     async def event_container_started(self, event):
+        container_id = event["Actor"]["ID"]
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
         service_name = attr.get("com.docker.compose.service")
         container_number = int(attr.get("com.docker.compose.container-number"))
         if not (project_name and service_name):
+            return
+        project_id = project_name.upper()
+        if not await self.ensure_resource_id_exists(project_id):
             return
         await self.sparql.update(
             """
@@ -290,9 +297,11 @@ class Application(web.Application):
                 BIND(IF(?oldscaling > {{scaling}},
                   ?oldscaling, {{scaling}}) AS ?newscaling) .
             }
-            """, project_id=escape_string(project_name.upper()),
+            """, project_id=escape_string(project_id),
             service_name=escape_string(service_name),
             scaling=container_number)
+        if await self.join_public_network(container_id):
+            await self.enqueue_one_action("proxy", self.restart_proxy, [])
 
     async def event_container_died(self, event):
         attr = event["Actor"]["Attributes"]
@@ -300,6 +309,9 @@ class Application(web.Application):
         service_name = attr.get("com.docker.compose.service")
         container_number = int(attr.get("com.docker.compose.container-number"))
         if not (project_name and service_name):
+            return
+        project_id = project_name.upper()
+        if not await self.ensure_resource_id_exists(project_id):
             return
         service_status = (
             SwarmUI.Started if container_number > 1 else SwarmUI.Stopped
@@ -342,7 +354,7 @@ class Application(web.Application):
                   AS ?newstate) .
             }
             """,
-            project_id=escape_string(project_name.upper()),
+            project_id=escape_string(project_id),
             service_name=escape_string(service_name),
             scaling=(container_number - 1),
             service_status=service_status)
