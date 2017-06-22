@@ -17,6 +17,9 @@ _state_to_action = {
 
 async def do_action(app, project_id, service_id,
                     args, pending_state, end_state):
+    """
+    Action triggered for any change of swarmui:requestedStatus
+    """
     logger.info("Changing service %s status to %s", service_id, end_state)
     await app.update_state(service_id, pending_state)
     service_name = await app.get_dct_title(service_id)
@@ -30,6 +33,9 @@ async def do_action(app, project_id, service_id,
 
 
 async def restart_action(app, project_id, service_id):
+    """
+    Action triggered when swarmui:restartRequested has become true
+    """
     logger.info("Restarting service %s", service_id)
     await app.update_state(service_id, SwarmUI.Restarting)
     service_name = await app.get_dct_title(service_id)
@@ -38,6 +44,9 @@ async def restart_action(app, project_id, service_id):
 
 
 async def scaling_action(app, project_id, service_id, value):
+    """
+    Action triggered when swarmui:requestedScaling change
+    """
     logger.info("Scaling service %s to %s", service_id, value)
     await app.update_state(service_id, SwarmUI.Scaling)
     service_name = await app.get_dct_title(service_id)
@@ -47,6 +56,9 @@ async def scaling_action(app, project_id, service_id, value):
 
 
 async def update(app, inserts, deletes):
+    """
+    Handler for the updates of the pipelines received by the Delta service
+    """
     for subject, triples in inserts.items():
         for triple in triples:
             if triple.p == SwarmUI.requestedStatus:
@@ -85,6 +97,9 @@ async def update(app, inserts, deletes):
 
 
 async def logs(request):
+    """
+    API endpoint to fetch the logs of a container
+    """
     service_id = request.match_info['id']
     try:
         project_id = await request.app.get_service_pipeline(service_id)

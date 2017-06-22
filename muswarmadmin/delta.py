@@ -33,6 +33,9 @@ class Value:
 
 
 class Triple:
+    """
+    A triple: subject (s), predicate (p) and object (o)
+    """
     def __init__(self, data):
         assert isinstance(data, dict)
         assert "s" in data
@@ -65,6 +68,9 @@ class Triple:
 
 
 class UpdateData:
+    """
+    A Delta service update: all its inserts, all its deletes
+    """
     def __init__(self, data):
         assert isinstance(data['graph'], str)
         assert isinstance(data['inserts'], list)
@@ -81,15 +87,26 @@ class UpdateData:
             self.__class__.__name__, self.graph, self.inserts, self.deletes)
 
     def filter_inserts(self, func):
+        """
+        Filter inserts that func(x) match where x is a singe triple of the
+        update
+        """
         assert callable(func)
         return (x for x in self.inserts if func(x))
 
     def filter_deletes(self, func):
+        """
+        Filter deletes that func(x) match where x is a singe triple of the
+        update
+        """
         assert callable(func)
         return (x for x in self.deletes if func(x))
 
 
 def filter_objects(data, resource_type):
+    """
+    Filter updates for a resource type
+    """
     inserts = {
         s: list(group)
         for s, group in groupby(data.filter_inserts(
@@ -106,6 +123,9 @@ def filter_objects(data, resource_type):
 
 
 async def update(request):
+    """
+    The API entry point for the Delta service callback
+    """
     graph = request.app.sparql.graph
     try:
         data = await request.json()

@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 async def _insert_triples(app, project_id, pipeline):
+    """
+    Generate and insert the triples about the services of a Docker Compose
+    project (pipeline) inside the database
+    """
     data = app.open_compose_data(project_id)
     triples = Triples()
     for service in data.services:
@@ -36,6 +40,10 @@ async def _insert_triples(app, project_id, pipeline):
 
 
 async def initialize_pipeline(app, repository, pipeline):
+    """
+    Action triggered when a new pipeline appear in the database: clone the
+    sources, insert the triples for services
+    """
     result = await app.sparql.query("WITH {{graph}} DESCRIBE {{}}",
                                     repository)
     repository_info, = tuple(result.values())
@@ -82,6 +90,9 @@ async def initialize_pipeline(app, repository, pipeline):
 
 
 async def update(app, inserts, deletes):
+    """
+    Handler for the updates of the repositories received by the Delta service
+    """
     for subject, triples in inserts.items():
         for triple in triples:
             if triple.p == SwarmUI.pipelines:
