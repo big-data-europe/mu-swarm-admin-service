@@ -264,7 +264,8 @@ class Application(web.Application):
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
         service_name = attr.get("com.docker.compose.service")
-        container_number = int(attr.get("com.docker.compose.container-number"))
+        container_number = int(attr.get("com.docker.compose.container-number",
+                                        0))
         if not (project_name and service_name):
             return
         project_id = project_name.upper()
@@ -307,7 +308,8 @@ class Application(web.Application):
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
         service_name = attr.get("com.docker.compose.service")
-        container_number = int(attr.get("com.docker.compose.container-number"))
+        container_number = int(attr.get("com.docker.compose.container-number",
+                                        0))
         if not (project_name and service_name):
             return
         project_id = project_name.upper()
