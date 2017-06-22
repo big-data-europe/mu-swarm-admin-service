@@ -1,5 +1,4 @@
 from aiohttp import web
-from aiosparql.escape import escape_any
 from aiosparql.syntax import IRI, Literal
 import logging
 
@@ -36,29 +35,15 @@ async def restart_action(app, project_id, service_id):
     service_name = await app.get_dct_title(service_id)
     await app.run_command("docker-compose", "restart", service_name,
                           cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Started)
 
 
 async def scaling_action(app, project_id, service_id, value):
     logger.info("Scaling service %s to %s", service_id, value)
     await app.update_state(service_id, SwarmUI.Scaling)
     service_name = await app.get_dct_title(service_id)
-    await app.sparql.update("""
-        WITH {{graph}}
-        DELETE {
-            ?s swarmui:scaling ?oldvalue
-        }
-        INSERT {
-            ?s swarmui:scaling {{value}}
-        }
-        WHERE {
-            ?s mu:uuid {{uuid}} .
-            OPTIONAL { ?s swarmui:scaling ?oldvalue } .
-        }""", uuid=escape_any(service_id), value=escape_any(value))
     await app.run_command(
         "docker-compose", "scale", "%s=%d" % (service_name, value),
         cwd="/data/%s" % project_id)
-    await app.update_state(service_id, SwarmUI.Started)
 
 
 async def update(app, inserts, deletes):
