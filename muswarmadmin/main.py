@@ -369,6 +369,7 @@ async def stop_cleanup(app):
 
 async def stop_action_schedulers(app):
     await ActionScheduler.graceful_cancel()
+    await OneActionScheduler.graceful_cancel()
 
 
 async def start_event_monitor(app):
