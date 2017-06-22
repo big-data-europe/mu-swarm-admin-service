@@ -11,7 +11,7 @@ from os import environ as ENV
 import re
 import subprocess
 
-from muswarmadmin.actionscheduler import ActionScheduler
+from muswarmadmin.actionscheduler import ActionScheduler, OneActionScheduler
 from muswarmadmin.delta import update
 from muswarmadmin.eventmonitor import event_monitor
 from muswarmadmin.prefixes import SwarmUI
@@ -246,6 +246,9 @@ class Application(web.Application):
 
     async def enqueue_action(self, key, action, args):
         await ActionScheduler.execute(key, action, args, loop=self.loop)
+
+    async def enqueue_one_action(self, key, action, args):
+        await OneActionScheduler.execute(key, action, args, loop=self.loop)
 
     async def event_container(self, event):
         if event["Action"] == "start":

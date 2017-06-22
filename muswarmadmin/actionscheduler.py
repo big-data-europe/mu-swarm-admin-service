@@ -63,3 +63,13 @@ class ActionScheduler:
     async def enqueue(self, action, args):
         logger.debug("Enqueue action %r with args: %r", action, args)
         await self.queue.put((action, args))
+
+
+class OneActionScheduler(ActionScheduler):
+    executers = {}
+
+    async def enqueue(self, action, args):
+        if not self.queue.empty():
+            logger.debug("Ignore action %r with args: %r", action, args)
+            return
+        await super(OneActionScheduler, self).enqueue(action, args)
