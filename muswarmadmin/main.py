@@ -120,7 +120,7 @@ class Application(web.Application):
             x.split('=', 1)
             for x in container['Config']['Env']
         ])
-        if 'VIRTUAL_HOST' not in env:
+        if 'PIPELINE_HOST' not in env:
             return False
         if network in container['NetworkSettings']['Networks']:
             return False
