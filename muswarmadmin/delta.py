@@ -5,33 +5,6 @@ from itertools import groupby
 from muswarmadmin import pipelines, repositories, services
 
 
-class Value:
-    def __init__(self, data):
-        assert isinstance(data, dict)
-        assert "type" in data
-        assert isinstance(data['type'], str)
-        assert "value" in data
-        assert isinstance(data['value'], str)
-        self.type = data['type']
-        self.value = data['value']
-        self.datatype = data.get('datatype')
-
-    def __eq__(self, other):
-        if isinstance(other, Value):
-            return (
-                self.type is other.type and self.value is other.value
-            )
-        else:
-            return self.value == other
-
-    def __repr__(self):
-        return "<%s type=%s value=%s>" % \
-            (self.__class__.__name__, self.type, self.value)
-
-    def __hash__(self):
-        return hash((self.type, self.value))
-
-
 class Triple:
     """
     A triple: subject (s), predicate (p) and object (o)
