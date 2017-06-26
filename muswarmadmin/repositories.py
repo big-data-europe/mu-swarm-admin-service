@@ -93,9 +93,25 @@ async def update(app, inserts, deletes):
     """
     Handler for the updates of the repositories received by the Delta service
     """
+    logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
             if triple.p == SwarmUI.pipelines:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
                 await initialize_pipeline(app, subject, triple.o)
+
+
+async def get_existing_updates(sparql):
+    return await sparql.query(
+        """
+        SELECT ?s (swarmui:pipelines AS ?p) ?o
+        FROM {{graph}}
+        WHERE
+        {
+            ?s a doap:GitRepository ;
+              swarmui:pipelines ?o .
+            ?o a swarmui:Pipeline .
+            FILTER (NOT EXISTS {?o swarmui:status ?status})
+        }
+        """)
