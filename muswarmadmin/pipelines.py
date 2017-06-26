@@ -77,6 +77,7 @@ async def update(app, inserts, deletes):
     """
     Handler for the updates of the pipelines received by the Delta service
     """
+    logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
             if triple.p == SwarmUI.requestedStatus:
@@ -122,3 +123,20 @@ async def update(app, inserts, deletes):
                             {{subject}} ?p ?o
                         }
                     }""", subject=triple.o)
+
+
+async def get_existing_updates(sparql):
+    return await sparql.query(
+        """
+        SELECT ?s ?p ?o
+        FROM {{graph}}
+        WHERE
+        {
+            ?s a swarmui:Pipeline ;
+              ?p ?o .
+            FILTER (?p IN (
+              swarmui:restartRequested,
+              swarmui:requestedStatus
+            ))
+        }
+        """)

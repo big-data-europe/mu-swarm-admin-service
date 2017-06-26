@@ -11,11 +11,10 @@ from os import environ as ENV
 import re
 import subprocess
 
+from muswarmadmin import delta, services
 from muswarmadmin.actionscheduler import ActionScheduler, OneActionScheduler
-from muswarmadmin.delta import update
 from muswarmadmin.eventmonitor import event_monitor
 from muswarmadmin.prefixes import SwarmUI
-from muswarmadmin.services import logs
 
 
 logger = logging.getLogger(__name__)
@@ -491,5 +490,6 @@ app.on_cleanup.append(stop_action_schedulers)
 app.on_startup.append(start_event_monitor)
 app.on_cleanup.append(stop_event_monitor)
 app.on_cleanup.append(stop_cleanup)
-app.router.add_post("/update", update)
-app.router.add_get("/services/{id}/logs", logs)
+app.on_startup.append(delta.startup)
+app.router.add_post("/update", delta.update)
+app.router.add_get("/services/{id}/logs", services.logs)

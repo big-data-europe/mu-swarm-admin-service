@@ -21,7 +21,7 @@ class Triple:
         self.p = IRI(data['p']['value'])
         if data['o']['type'] == "uri":
             self.o = IRI(data['o']['value'])
-        elif data['o']['type'] == "literal":
+        elif data['o']['type'] in ("literal", "typed-literal"):
             self.o = Literal(data['o']['value'])
         else:
             raise NotImplementedError("object type %s" % data['o']['type'])
@@ -76,22 +76,32 @@ class UpdateData:
         return (x for x in self.deletes if func(x))
 
 
-def filter_objects(data, resource_type):
+def select_to_triples(result):
+    """
+    Transform the query result of a SELECT query to a list of triples.
+    """
+    return [Triple(x) for x in result['results']['bindings']]
+
+
+def groupby_subject(triples):
+    """
+    Group a list of triples by subject and return a dict where the keys are the
+    subjects and the values are lists of triples
+    """
+    return {
+        s: list(group)
+        for s, group in groupby(triples, lambda x: x.s)
+    }
+
+
+def filter_updates(data, resource_type):
     """
     Filter updates for a resource type
     """
-    inserts = {
-        s: list(group)
-        for s, group in groupby(data.filter_inserts(
-            lambda x: x.s.value.startswith(resource_type.value)),
-            lambda x: x.s)
-    }
-    deletes = {
-        s: list(group)
-        for s, group in groupby(data.filter_deletes(
-            lambda x: x.s.value.startswith(resource_type.value)),
-            lambda x: x.s)
-    }
+    inserts = groupby_subject(data.filter_inserts(
+        lambda x: x.s.value.startswith(resource_type.value)))
+    deletes = groupby_subject(data.filter_deletes(
+        lambda x: x.s.value.startswith(resource_type.value)))
     return (inserts, deletes)
 
 
@@ -116,20 +126,37 @@ async def update(request):
 
     request.app.loop.create_task(repositories.update(
         request.app,
-        *filter_objects(
+        *filter_updates(
             first_data,
             request.app.base_resource + "repositories/")))
 
     request.app.loop.create_task(pipelines.update(
         request.app,
-        *filter_objects(
+        *filter_updates(
             first_data,
             request.app.base_resource + "pipeline-instances/")))
 
     request.app.loop.create_task(services.update(
         request.app,
-        *filter_objects(
+        *filter_updates(
             first_data,
             request.app.base_resource + "services/")))
 
     raise web.HTTPNoContent()
+
+
+async def startup(app):
+    """
+    Hook on the startup of the application that will find all the existing
+    updates (restartRequested, requestedStatus, ...) and run them
+    """
+    result = await repositories.get_existing_updates(app.sparql)
+    app.loop.create_task(
+        repositories.update(app,
+                            groupby_subject(select_to_triples(result)), {}))
+    result = await pipelines.get_existing_updates(app.sparql)
+    app.loop.create_task(
+        pipelines.update(app, groupby_subject(select_to_triples(result)), {}))
+    result = await services.get_existing_updates(app.sparql)
+    app.loop.create_task(
+        services.update(app, groupby_subject(select_to_triples(result)), {}))
