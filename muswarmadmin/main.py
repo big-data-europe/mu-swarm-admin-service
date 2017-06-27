@@ -336,15 +336,6 @@ class Application(web.Application):
         """
         This method receive the event from the Docker client
         """
-        if event["Action"] == "start":
-            await self.event_container_started(event)
-        elif event["Action"] == "die":
-            await self.event_container_died(event)
-
-    async def event_container_started(self, event):
-        """
-        Watch for container "starting" event
-        """
         container_id = event["Actor"]["ID"]
         attr = event["Actor"]["Attributes"]
         project_name = attr.get("com.docker.compose.project")
@@ -353,7 +344,21 @@ class Application(web.Application):
                                         0))
         if not (project_name and service_name):
             return
+
         project_id = project_name.upper()
+
+        if event["Action"] == "start":
+            await self.event_container_started(container_id, project_id,
+                                               service_name, container_number)
+        elif event["Action"] == "die":
+            await self.event_container_died(project_id, service_name,
+                                            container_number)
+
+    async def event_container_started(self, container_id, project_id,
+                                      service_name, container_number):
+        """
+        Watch for container "starting" event
+        """
         if not await self.ensure_resource_id_exists(project_id):
             return
         await self.sparql.update(
@@ -389,18 +394,11 @@ class Application(web.Application):
         if await self.join_public_network(container_id):
             await self.enqueue_one_action("proxy", self.restart_proxy, [])
 
-    async def event_container_died(self, event):
+    async def event_container_died(self, project_id, service_name,
+                                   container_number):
         """
         Watch for container "dying" event
         """
-        attr = event["Actor"]["Attributes"]
-        project_name = attr.get("com.docker.compose.project")
-        service_name = attr.get("com.docker.compose.service")
-        container_number = int(attr.get("com.docker.compose.container-number",
-                                        0))
-        if not (project_name and service_name):
-            return
-        project_id = project_name.upper()
         if not await self.ensure_resource_id_exists(project_id):
             return
         service_status = (

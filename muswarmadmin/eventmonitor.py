@@ -27,25 +27,25 @@ async def watch(docker, handlers):
 
 async def startup(app):
     """
-    Hook on the startup of the application that will convert existing running
-    containers retrieved from the Docker API to Docker events. When the
-    application starts up, it will automatically update the database with the
-    current existing containers. It will also check the status of the database
-    and try to find the containers matching its status. If they don't exist,
-    "die" Docker events will be generated.
+    Hook on the startup of the application that will call the Docker API to
+    check for existing running containers and call for container started event
+    on the application. When the application starts up, it will automatically
+    update the database based on actual running containers. It will also check
+    the information in the database and ensure that the containers exist and
+    are running. If they don't exist, call for container die event on the
+    application will be made.
     """
     running_services = {}
     for container in await app.docker.containers():
-        await app.event_container_started({
-            "Actor": {
-                "ID": container['Id'],
-                "Attributes": container['Labels'],
-            },
-        })
         project_name = container['Labels'].get("com.docker.compose.project")
         service_name = container['Labels'].get("com.docker.compose.service")
+        if not (project_name and service_name):
+            continue
+        project_id = project_name.upper()
         container_number = int(
             container['Labels'].get("com.docker.compose.container-number", 0))
+        await app.event_container_started(
+            container['Id'], project_id, service_name, container_number)
         if project_name and service_name:
             running_services[(project_name, service_name)] = max(
                 running_services.get((project_name, service_name), 0),
@@ -74,12 +74,4 @@ async def startup(app):
         scaling = int(data['scaling']['value'])
         actual_scaling = running_services.get((project_name, service_name), 0)
         for i in range(scaling, actual_scaling, -1):
-            await app.event_container_died({
-                "Actor": {
-                    "Attributes": {
-                        "com.docker.compose.project": project_name,
-                        "com.docker.compose.service": service_name,
-                        "com.docker.compose.container-number": i,
-                    },
-                },
-            })
+            await app.event_container_died(project_id, service_name, i)
