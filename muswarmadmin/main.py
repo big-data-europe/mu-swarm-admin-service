@@ -11,9 +11,8 @@ from os import environ as ENV
 import re
 import subprocess
 
-from muswarmadmin import delta, services
+from muswarmadmin import delta, eventmonitor, services
 from muswarmadmin.actionscheduler import ActionScheduler, OneActionScheduler
-from muswarmadmin.eventmonitor import event_monitor
 from muswarmadmin.prefixes import SwarmUI
 
 
@@ -474,7 +473,7 @@ async def start_event_monitor(app):
     Start the Docker event monitor
     """
     app['event_monitor'] = app.loop.create_task(
-        event_monitor(app.docker, {"container": [app.event_container]}))
+        eventmonitor.watch(app.docker, {"container": [app.event_container]}))
 
 
 async def stop_event_monitor(app):
@@ -491,5 +490,6 @@ app.on_startup.append(start_event_monitor)
 app.on_cleanup.append(stop_event_monitor)
 app.on_cleanup.append(stop_cleanup)
 app.on_startup.append(delta.startup)
+app.on_startup.append(eventmonitor.startup)
 app.router.add_post("/update", delta.update)
 app.router.add_get("/services/{id}/logs", services.logs)
