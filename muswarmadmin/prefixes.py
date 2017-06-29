@@ -49,6 +49,7 @@ class Dct(Namespace):
 class Doap(Namespace):
     __iri__ = IRI("http://usefulinc.com/ns/doap#")
 
+    GitRepository = PrefixedName
     location = PrefixedName
 
 

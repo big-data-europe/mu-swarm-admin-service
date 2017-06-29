@@ -1,10 +1,20 @@
-sudo: false
+sudo: required
 language: python
-python:
-  - "3.6"
-env:
-    - TOX_ENV=flake8
+
+services:
+  - docker
+
 install:
-    - pip install tox
+  - pip install coverage codecov
+
+before_script:
+  - ./ci/start.sh
+
+after_script:
+  - ./ci/stop.sh
+
 script:
-    - tox -e $TOX_ENV
+  - ./ci/run-tests.sh
+
+after_success:
+  - TRAVIS_PYTHON_VERSION=3.6 codecov
