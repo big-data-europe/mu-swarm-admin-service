@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ -n "$TOX" ] && pip install tox
+
 [ -n "$1" ] && exec "$@"
 
 if [ "${ENV:0:3}" == dev ]; then
