@@ -156,6 +156,9 @@ class Application(web.Application):
                 {{}} mu:uuid ?o .
             }
             """, subject)
+        if not result['results']['bindings'] or \
+                not result['results']['bindings'][0]:
+            raise KeyError("subject %r not found" % subject)
         return result['results']['bindings'][0]['o']['value']
 
     async def ensure_resource_id_exists(self, resource_id):
