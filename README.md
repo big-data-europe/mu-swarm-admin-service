@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/big-data-europe/mu-swarm-admin-service/branch/master/graph/badge.svg)](https://codecov.io/gh/big-data-europe/mu-swarm-admin-service)
+
 Mu Swarm Admin Service
 ======================
 

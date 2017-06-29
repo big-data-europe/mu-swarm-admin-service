@@ -5,8 +5,9 @@ dist
 *.pyc
 *.swp
 
+.cache
 .tox
-.coverage
+.coverage*
 html/*
 
 # Compiled Documentation
