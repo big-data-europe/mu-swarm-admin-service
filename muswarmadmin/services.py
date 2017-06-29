@@ -67,7 +67,8 @@ async def update(app, inserts, deletes):
                     "wrong type: %r" % type(triple.o)
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
-                await app.reset_status_requested(service_id)
+                await app.enqueue_action(
+                    project_id, app.reset_status_requested, [service_id])
                 if triple.o in _state_to_action:
                     args, pending_state = _state_to_action[triple.o]
                     await app.enqueue_action(
@@ -84,7 +85,8 @@ async def update(app, inserts, deletes):
                     continue
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
-                await app.reset_restart_requested(service_id)
+                await app.enqueue_action(
+                    project_id, app.reset_restart_requested, [service_id])
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id, service_id])
             elif triple.p == SwarmUI.requestedScaling:

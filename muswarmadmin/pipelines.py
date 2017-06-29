@@ -84,7 +84,8 @@ async def update(app, inserts, deletes):
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
                 project_id = await app.get_resource_id(subject)
-                await app.reset_status_requested(project_id)
+                await app.enqueue_action(
+                    project_id, app.reset_status_requested, [project_id])
                 if triple.o == SwarmUI.Up:
                     await app.enqueue_action(project_id, up_action,
                                              [app, project_id])
@@ -102,7 +103,8 @@ async def update(app, inserts, deletes):
                 if not triple.o == "true":
                     continue
                 project_id = await app.get_resource_id(subject)
-                await app.reset_restart_requested(project_id)
+                await app.enqueue_action(
+                    project_id, app.reset_status_requested, [project_id])
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id])
 
