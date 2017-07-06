@@ -70,7 +70,7 @@ class ActionScheduler:
                 finally:
                     self.queue.task_done()
         except StopScheduler:
-            del ActionScheduler.executers[self.name]
+            del type(self).executers[self.name]
         except asyncio.CancelledError:
             pass
         finally:
@@ -85,7 +85,8 @@ class ActionScheduler:
         await self.queue.join()
         self.executer.cancel()
         await self.executer
-        del ActionScheduler.executers[self.name]
+        if self.name in type(self).executers:
+            del type(self).executers[self.name]
 
     async def enqueue(self, action, args):
         """
