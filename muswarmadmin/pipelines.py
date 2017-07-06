@@ -26,6 +26,15 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     raise StopScheduler()
 
 
+async def delete_all_triples(app, subject):
+    await app.sparql.update("""
+        DELETE WHERE {
+            GRAPH {{graph}} {
+                {{}} ?p ?o
+            }
+        }""", subject)
+
+
 _state_to_action = {
     SwarmUI.Down: (["down"], SwarmUI.Stopping),
     SwarmUI.Started: (["start"], SwarmUI.Starting),
@@ -109,22 +118,24 @@ async def update(app, inserts, deletes):
                                          [app, project_id])
 
     for subject, triples in deletes.items():
+        uuid = None
+        services_iri = []
         for triple in triples:
             if triple.p == Mu.uuid:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
-                await app.enqueue_action(
-                    triple.o.value, shutdown_and_cleanup_pipeline,
-                    [app, triple.o.value])
+                uuid = triple.o.value
             elif triple.p == SwarmUI.services:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
-                await app.sparql.update("""
-                    DELETE WHERE {
-                        GRAPH {{graph}} {
-                            {{subject}} ?p ?o
-                        }
-                    }""", subject=triple.o)
+                services_iri.append(triple.o)
+        if uuid:
+            for service_iri in services_iri:
+                await app.enqueue_action(uuid, delete_all_triples,
+                                         [app, services_iri])
+            await app.enqueue_action(
+                uuid, shutdown_and_cleanup_pipeline,
+                [app, uuid])
 
 
 async def get_existing_updates(sparql):
