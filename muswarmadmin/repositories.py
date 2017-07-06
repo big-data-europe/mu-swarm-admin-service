@@ -39,23 +39,11 @@ async def _insert_triples(app, project_id, pipeline):
         }""", services_iri=(app.base_resource + "services/"), triples=triples)
 
 
-async def initialize_pipeline(app, repository, pipeline):
+async def initialize_pipeline(app, pipeline, project_id, location, branch):
     """
     Action triggered when a new pipeline appear in the database: clone the
     sources, insert the triples for services
     """
-    result = await app.sparql.query("WITH {{graph}} DESCRIBE {{}}",
-                                    repository)
-    repository_info, = tuple(result.values())
-    location = repository_info.get(Doap.location, [{'value': ''}])[0]['value']
-    branch = repository_info.get(SwarmUI.branch, [{'value': ''}])[0]['value']
-    repository_id = await app.get_resource_id(repository)
-    project_id = await app.get_resource_id(pipeline)
-    if not location:
-        logger.error("Pipeline %s: can not clone repository %s, location not "
-                     "specified", project_id, repository_id)
-        await app.update_state(project_id, SwarmUI.Error)
-        return
     logger.info("Initializing pipeline %s", project_id)
     try:
         git.Repo('/data/%s' % project_id)
@@ -99,7 +87,22 @@ async def update(app, inserts, deletes):
             if triple.p == SwarmUI.pipelines:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
-                await initialize_pipeline(app, subject, triple.o)
+                result = await app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
+                                                subject)
+                info, = tuple(result.values())
+                location = info.get(Doap.location, [{'value': ''}])[0]['value']
+                branch = info.get(SwarmUI.branch, [{'value': ''}])[0]['value']
+                repository_id = await app.get_resource_id(subject)
+                project_id = await app.get_resource_id(triple.o)
+                if not location:
+                    logger.error("Pipeline %s: can not clone repository %s, "
+                                 "location not specified",
+                                 project_id, repository_id)
+                    await app.update_state(project_id, SwarmUI.Error)
+                    return
+                await app.enqueue_action(project_id, initialize_pipeline, [
+                    app, triple.o, project_id, location, branch,
+                ])
 
 
 async def get_existing_updates(sparql):
