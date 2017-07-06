@@ -34,6 +34,8 @@ class Application(web.Application):
     compose_up_timeout = 1800
     # NOTE: base IRI used for all the resources managed by this service.
     base_resource = IRI("http://swarm-ui.big-data-europe.eu/resources/")
+    # NOTE: override default timeout for SPARQL queries
+    sparql_timeout = 60
 
     @property
     def sparql(self):
@@ -41,7 +43,8 @@ class Application(web.Application):
         The SPARQL client
         """
         if not hasattr(self, '_sparql'):
-            self._sparql = SPARQLClient(loop=self.loop)
+            self._sparql = SPARQLClient(loop=self.loop,
+                                        read_timeout=self.sparql_timeout)
         return self._sparql
 
     @property
