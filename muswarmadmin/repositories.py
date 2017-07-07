@@ -1,4 +1,3 @@
-from aiohttp import web
 from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
 import git
 import logging
@@ -50,8 +49,8 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     except git.exc.NoSuchPathError:
         pass
     else:
-        raise web.HTTPConflict(
-            body="pipeline %s already exists" % project_id)
+        logger.error("pipeline %s already exists", project_id)
+        return
     repo = git.Repo.init('/data/%s' % project_id)
     repo.create_remote('origin', location)
     try:
@@ -60,14 +59,13 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
         head = repo.create_head(branch or 'master', remote)
         head.set_tracking_branch(remote)
         head.checkout()
-    except Exception:
-        logger.exception(
-            "can not pull from the repository %s",
-            repo.remotes.origin.url)
+    except git.exc.GitCommandError as exc:
+        logger.error("%s", exc)
         rmtree(repo.working_dir)
-        raise web.HTTPBadRequest(
-            body="can not pull from the repository: %s"
-                 % repo.remotes.origin.url)
+        return
+    except Exception:
+        rmtree(repo.working_dir)
+        raise
     try:
         await _insert_triples(app, project_id, pipeline)
     except Exception:
