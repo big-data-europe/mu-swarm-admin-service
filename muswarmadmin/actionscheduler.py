@@ -48,7 +48,7 @@ class ActionScheduler:
         logger.debug("Registering new action scheduler %s", name)
         self.name = name
         self.loop = asyncio.get_event_loop() if loop is None else loop
-        self.queue = asyncio.Queue()
+        self.queue = asyncio.Queue(loop=self.loop)
         self.executer = self.loop.create_task(self.executer())
 
     async def executer(self):
