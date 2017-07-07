@@ -79,7 +79,7 @@ async def restart_action(app, project_id):
     await app.update_state(project_id, SwarmUI.Restarting)
     await app.run_command("docker-compose", "restart",
                           cwd="/data/%s" % project_id)
-    await app.update_state(project_id, SwarmUI.Up)
+    await app.update_state(project_id, SwarmUI.Started)
 
 
 async def update(app, inserts, deletes):
