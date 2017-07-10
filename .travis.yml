@@ -1,11 +1,7 @@
 sudo: required
-language: python
 
 services:
   - docker
-
-install:
-  - pip install coverage codecov
 
 before_script:
   - ./ci/start.sh
@@ -15,6 +11,3 @@ after_script:
 
 script:
   - ./ci/run-tests.sh
-
-after_success:
-  - TRAVIS_PYTHON_VERSION=3.6 codecov
