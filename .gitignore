@@ -8,6 +8,7 @@ dist
 .cache
 .tox
 .coverage*
+coverage.xml
 html/*
 
 # Compiled Documentation
