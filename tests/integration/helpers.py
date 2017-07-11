@@ -16,7 +16,7 @@ import muswarmadmin.main
 from muswarmadmin.actionscheduler import ActionScheduler
 from muswarmadmin.prefixes import Doap, Mu, SwarmUI
 
-__all__ = ['TestCase', 'unittest_run_loop']
+__all__ = ['IntegrationTestCase', 'unittest_run_loop']
 
 
 # NOTE: temporary fix: ensure a child watcher is set before running test
@@ -66,7 +66,7 @@ class FixedPortTestServer(TestServer):
         return self.handler
 
 
-class TestCase(AioHTTPTestCase):
+class IntegrationTestCase(AioHTTPTestCase):
     example_repo = \
         "https://github.com/cecton/docker-compose-for-testing.git"
     sparql_timeout = 5

@@ -5,10 +5,10 @@ import muswarmadmin.eventmonitor
 import muswarmadmin.main
 from muswarmadmin.prefixes import Dct, Doap, Mu, SwarmUI
 
-from tests.integration.helpers import TestCase, unittest_run_loop
+from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 
-class BaseEventMonitorTestCase(TestCase):
+class BaseEventMonitorTestCase(IntegrationTestCase):
     async def get_application(self):
         app = muswarmadmin.main.Application()
         app.sparql_timeout = self.sparql_timeout

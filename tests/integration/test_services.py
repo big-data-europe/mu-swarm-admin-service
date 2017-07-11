@@ -1,9 +1,9 @@
 from muswarmadmin.prefixes import SwarmUI
 
-from tests.integration.helpers import TestCase, unittest_run_loop
+from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 
-class ServicesTestCase(TestCase):
+class ServicesTestCase(IntegrationTestCase):
     async def do_action(self, pipeline_id, service_iri, service_id, action,
                         pending_state):
         await self.insert_triples([
