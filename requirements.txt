@@ -3,4 +3,3 @@ aiohttp < 2.3
 aiosparql < 0.8
 python-dateutil == 2.6.0
 docker-compose==1.13.0
-GitPython==2.0.1

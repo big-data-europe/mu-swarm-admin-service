@@ -1,6 +1,6 @@
-from aiosparql.syntax import IRI, Literal
-import git
 import logging
+import os
+from aiosparql.syntax import IRI, Literal
 from shutil import rmtree
 
 from muswarmadmin.prefixes import Mu, SwarmUI
@@ -16,13 +16,12 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     PIPELINE source directory
     """
     logger.info("Shutting down and cleaning up pipeline %s", project_id)
-    try:
-        repo = git.Repo('/data/%s' % project_id)
-    except git.exc.NoSuchPathError:
-        return
+    project_path = "/data/%s" % project_id
+    if not os.path.exists(project_path):
+        raise StopScheduler()
     await app.run_command(
         "docker-compose", "down", cwd="/data/%s" % project_id)
-    rmtree(repo.working_dir)
+    rmtree(project_path)
     raise StopScheduler()
 
 
