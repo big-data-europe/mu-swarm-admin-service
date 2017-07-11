@@ -1,9 +1,9 @@
 from muswarmadmin.prefixes import SwarmUI
 
-from tests.integration.helpers import TestCase, unittest_run_loop
+from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 
-class RepositoriesTestCase(TestCase):
+class RepositoriesTestCase(IntegrationTestCase):
     @unittest_run_loop
     async def test_initialization(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
