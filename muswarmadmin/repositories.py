@@ -1,6 +1,6 @@
-from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
-import git
 import logging
+import os
+from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
 from shutil import rmtree
 from uuid import uuid4
 
@@ -44,32 +44,22 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     sources, insert the triples for services
     """
     logger.info("Initializing pipeline %s", project_id)
-    try:
-        git.Repo('/data/%s' % project_id)
-    except git.exc.NoSuchPathError:
-        pass
-    else:
-        logger.error("pipeline %s already exists", project_id)
+    project_path = "/data/%s" % project_id
+    if os.path.exists(project_path):
+        logger.error("Pipeline at %s already exists", project_path)
         return
-    repo = git.Repo.init('/data/%s' % project_id)
-    repo.create_remote('origin', location)
-    try:
-        repo.remotes.origin.fetch()
-        remote = repo.remotes.origin.refs[branch or 'master']
-        head = repo.create_head(branch or 'master', remote)
-        head.set_tracking_branch(remote)
-        head.checkout()
-    except git.exc.GitCommandError as exc:
-        logger.error("%s", exc)
-        rmtree(repo.working_dir)
+    proc = await app.run_command(
+        "git", "clone", location, "-b", (branch or "master"), project_id,
+        cwd="/data")
+    if proc.returncode != 0:
+        logger.error("Failed to clone repository at %s", location)
+        if os.path.exists(project_path):
+            rmtree(project_path)
         return
-    except Exception:
-        rmtree(repo.working_dir)
-        raise
     try:
         await _insert_triples(app, project_id, pipeline)
     except Exception:
-        rmtree(repo.working_dir)
+        rmtree(project_path)
         raise
     else:
         await app.update_state(project_id, SwarmUI.Down)
