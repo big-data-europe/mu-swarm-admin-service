@@ -10,36 +10,27 @@ class ServicesTestCase(IntegrationTestCase):
             (service_iri, SwarmUI.requestedStatus, action),
         ])
         await self.scheduler_complete(pipeline_id)
-        result = await self.describe(service_iri)
-        self.assertTrue(result and result[service_iri])
-        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
-        self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
-                         pending_state)
+        await self.assertStatus(service_iri, action)
 
     async def restart_action(self, pipeline_id, service_iri, service_id):
         await self.insert_triples([
             (service_iri, SwarmUI.restartRequested, "true"),
         ])
         await self.scheduler_complete(pipeline_id)
-        result = await self.describe(service_iri)
-        self.assertTrue(result and result[service_iri])
-        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
-        self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
-                         SwarmUI.Restarting)
+        await self.assertStatus(service_iri, SwarmUI.Started)
 
     async def scale_action(self, pipeline_id, service_iri, service_id, value):
         await self.insert_triples([
             (service_iri, SwarmUI.requestedScaling, value),
         ])
         await self.scheduler_complete(pipeline_id)
-        result = await self.describe(service_iri)
-        self.assertTrue(result and result[service_iri])
-        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
-        self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
-                         SwarmUI.Scaling)
+        await self.assertNode(service_iri, [
+            (SwarmUI.status, SwarmUI.Started),
+            (SwarmUI.scaling, value),
+        ])
 
     @unittest_run_loop
-    async def test_service_actions(self):
+    async def test_actions(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
         services = await self.get_services(pipeline_id)
         service_iri, service_id = next(iter(services.values()))

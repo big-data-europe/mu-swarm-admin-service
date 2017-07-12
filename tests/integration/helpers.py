@@ -9,6 +9,7 @@ from aiohttp.test_utils import (
     unittest_run_loop)
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_string, IRI, Node, RDF, Triples
+from itertools import groupby
 from yarl import URL
 
 import muswarmadmin.delta
@@ -186,3 +187,14 @@ class IntegrationTestCase(AioHTTPTestCase):
     def _get_client(self, app):
         """Return a TestClient instance."""
         return TestClient(app, loop=self.loop)
+
+    async def assertNode(self, subject, values):
+        result = await self.describe(subject)
+        self.assertTrue(result and result[subject])
+        for p, group_o in groupby(values, lambda x: x[0]):
+            values_set = set([x[1] for x in group_o])
+            result_values = set([x['value'] for x in result[subject][p]])
+            self.assertEqual(result_values, values_set)
+
+    async def assertStatus(self, subject, status):
+        await self.assertNode(subject, [(SwarmUI.status, status)])
