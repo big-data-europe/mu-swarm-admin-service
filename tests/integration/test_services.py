@@ -33,14 +33,18 @@ class ServicesTestCase(IntegrationTestCase):
     async def test_actions(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
         services = await self.get_services(pipeline_id)
-        service_iri, service_id = next(iter(services.values()))
         await self.insert_triples([
             (pipeline_iri, SwarmUI.requestedStatus, SwarmUI.Up),
         ])
         await self.scheduler_complete(pipeline_id)
-        await self.do_action(pipeline_id, service_iri, service_id,
-                             SwarmUI.Stopped, SwarmUI.Stopping)
-        await self.do_action(pipeline_id, service_iri, service_id,
-                             SwarmUI.Started, SwarmUI.Starting)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
+        for service_iri, service_id in services.values():
+            await self.do_action(pipeline_id, service_iri, service_id,
+                                 SwarmUI.Stopped, SwarmUI.Stopping)
+        await self.assertStatus(pipeline_iri, SwarmUI.Stopped)
+        for service_iri, service_id in services.values():
+            await self.do_action(pipeline_id, service_iri, service_id,
+                                 SwarmUI.Started, SwarmUI.Starting)
         await self.restart_action(pipeline_id, service_iri, service_id)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.scale_action(pipeline_id, service_iri, service_id, 2)

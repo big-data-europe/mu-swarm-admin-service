@@ -34,6 +34,20 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         await self.assertStatus(pipeline_iri, action)
 
+    async def up_action(self, pipeline_iri, pipeline_id):
+        await self.insert_triples([
+            (pipeline_iri, SwarmUI.requestedStatus, SwarmUI.Up),
+        ])
+        await self.scheduler_complete(pipeline_id)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
+
+    async def down_action(self, pipeline_iri, pipeline_id):
+        await self.insert_triples([
+            (pipeline_iri, SwarmUI.requestedStatus, SwarmUI.Down),
+        ])
+        await self.scheduler_complete(pipeline_id)
+        await self.assertStatus(pipeline_iri, SwarmUI.Stopped)
+
     async def restart_action(self, pipeline_iri, pipeline_id):
         await self.insert_triples([
             (pipeline_iri, SwarmUI.restartRequested, "true"),
@@ -44,8 +58,8 @@ class PipelinesTestCase(IntegrationTestCase):
     @unittest_run_loop
     async def test_pipeline_actions(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up)
+        await self.up_action(pipeline_iri, pipeline_id)
         await self.restart_action(pipeline_iri, pipeline_id)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started)
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down)
+        await self.down_action(pipeline_iri, pipeline_id)
