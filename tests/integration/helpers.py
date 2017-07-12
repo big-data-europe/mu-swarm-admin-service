@@ -9,6 +9,7 @@ from aiohttp.test_utils import (
     unittest_run_loop)
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_string, IRI, Node, RDF, Triples
+from copy import copy
 from itertools import groupby
 from yarl import URL
 
@@ -73,14 +74,8 @@ class IntegrationTestCase(AioHTTPTestCase):
     sparql_timeout = 5
 
     async def get_application(self):
-        # NOTE: disable the Docker event monitor on purpose. We have no way
-        #       at this point to know when all the operations will be finished
-        #       and it may interfere with the state inside the database
-        app = muswarmadmin.main.Application()
+        app = copy(muswarmadmin.main.app)
         app.sparql_timeout = self.sparql_timeout
-        app.on_cleanup.append(muswarmadmin.main.stop_action_schedulers)
-        app.on_cleanup.append(muswarmadmin.main.stop_cleanup)
-        app.router.add_post("/update", muswarmadmin.delta.update)
         return app
 
     async def scheduler_complete(self, key):
@@ -192,9 +187,9 @@ class IntegrationTestCase(AioHTTPTestCase):
         result = await self.describe(subject)
         self.assertTrue(result and result[subject])
         for p, group_o in groupby(values, lambda x: x[0]):
-            values_set = set([x[1] for x in group_o])
+            expected_values = set([x[1] for x in group_o])
             result_values = set([x['value'] for x in result[subject][p]])
-            self.assertEqual(result_values, values_set)
+            self.assertEqual(result_values, expected_values)
 
     async def assertStatus(self, subject, status):
         await self.assertNode(subject, [(SwarmUI.status, status)])
