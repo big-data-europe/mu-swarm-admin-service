@@ -11,3 +11,6 @@ dist
 .coverage
 html/*
 __pycache__
+
+tests/
+ci/
