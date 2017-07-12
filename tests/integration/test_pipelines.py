@@ -34,6 +34,7 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         result = await self.describe(pipeline_iri)
         self.assertTrue(result and result[pipeline_iri])
+        self.assertEqual(len(result[pipeline_iri][SwarmUI.status]), 1)
         self.assertEqual(result[pipeline_iri][SwarmUI.status][0]['value'],
                          action)
 
@@ -44,6 +45,7 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         result = await self.describe(pipeline_iri)
         self.assertTrue(result and result[pipeline_iri])
+        self.assertEqual(len(result[pipeline_iri][SwarmUI.status]), 1)
         self.assertEqual(result[pipeline_iri][SwarmUI.status][0]['value'],
                          SwarmUI.Started)
 

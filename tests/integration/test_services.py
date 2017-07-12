@@ -12,6 +12,7 @@ class ServicesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         result = await self.describe(service_iri)
         self.assertTrue(result and result[service_iri])
+        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
         self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
                          pending_state)
 
@@ -22,6 +23,7 @@ class ServicesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         result = await self.describe(service_iri)
         self.assertTrue(result and result[service_iri])
+        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
         self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
                          SwarmUI.Restarting)
 
@@ -32,6 +34,7 @@ class ServicesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         result = await self.describe(service_iri)
         self.assertTrue(result and result[service_iri])
+        self.assertEqual(len(result[service_iri][SwarmUI.status]), 1)
         self.assertEqual(result[service_iri][SwarmUI.status][0]['value'],
                          SwarmUI.Scaling)
 
