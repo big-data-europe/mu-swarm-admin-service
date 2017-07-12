@@ -22,3 +22,5 @@ docker run -d --name=muswarmadmin_test_delta \
 	-v "$PWD"/delta:/config \
 	-p 8891:8890 \
 	semtech/mu-delta-service:beta-0.9
+
+docker pull bde2020/mu-swarm-admin-service:latest
