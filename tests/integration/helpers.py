@@ -80,8 +80,18 @@ class IntegrationTestCase(AioHTTPTestCase):
 
     async def scheduler_complete(self, key):
         if key not in ActionScheduler.executers:
-            raise KeyError("ActionScheduler for key %s does not exist" % key)
+            raise KeyError(
+                "ActionScheduler for key %s does not exist. "
+                "HINT: the ActionScheduler is removed automatically after "
+                "calling this function" % key)
         await ActionScheduler.executers[key].cancel()
+
+    async def wait_scheduler(self, key, timeout=3):
+        for i in range(timeout * 5):
+            if key in ActionScheduler.executers:
+                break
+            await asyncio.sleep(0.2)
+        await self.scheduler_complete(key)
 
     def uuid4(self):
         return str(uuid.uuid4()).replace("-", "").upper()

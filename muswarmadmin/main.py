@@ -374,25 +374,22 @@ class Application(web.Application):
             """
             WITH {{graph}}
             DELETE {
-                ?pipeline swarmui:status ?oldpipelinestate .
-                ?service swarmui:status ?oldservicestate ;
+                ?service swarmui:status ?oldstatus ;
                   swarmui:scaling ?oldscaling .
             }
             INSERT {
-                ?pipeline swarmui:status swarmui:Started .
                 ?service swarmui:status swarmui:Started ;
                   swarmui:scaling ?newscaling .
             }
             WHERE {
                 ?pipeline a swarmui:Pipeline ;
                   mu:uuid {{project_id}} ;
-                  swarmui:status ?oldpipelinestate ;
                   swarmui:services ?service .
 
                 ?service a swarmui:Service ;
                   dct:title {{service_name}} ;
                   swarmui:scaling ?oldscaling ;
-                  swarmui:status ?oldservicestate .
+                  swarmui:status ?oldstatus .
 
                 BIND(IF(?oldscaling > {{scaling}},
                   ?oldscaling, {{scaling}}) AS ?newscaling) .
@@ -400,6 +397,28 @@ class Application(web.Application):
             """, project_id=escape_string(project_id),
             service_name=escape_string(service_name),
             scaling=container_number)
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?pipeline swarmui:status ?oldstatus .
+            }
+            INSERT {
+                ?pipeline swarmui:status swarmui:Started .
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:status ?oldstatus ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} .
+
+                FILTER ( ?oldstatus NOT IN (swarmui:Up, swarmui:Started) )
+            }
+            """, project_id=escape_string(project_id),
+            service_name=escape_string(service_name))
         if await self.join_public_network(container_id):
             await self.enqueue_one_action("proxy", self.restart_proxy, [])
 
@@ -417,28 +436,50 @@ class Application(web.Application):
             """
             WITH {{graph}}
             DELETE {
-                ?pipeline swarmui:status ?oldpipelinestate .
-                ?service swarmui:status ?oldservicestate ;
+                ?service swarmui:status ?oldstatus ;
                   swarmui:scaling ?oldscaling .
             }
             INSERT {
-                ?pipeline swarmui:status ?newstate .
                 ?service swarmui:status {{service_status}} ;
                   swarmui:scaling ?newscaling .
             }
             WHERE {
                 ?pipeline a swarmui:Pipeline ;
                   mu:uuid {{project_id}} ;
-                  swarmui:status ?oldpipelinestate ;
                   swarmui:services ?service .
 
                 ?service a swarmui:Service ;
                   dct:title {{service_name}} ;
                   swarmui:scaling ?oldscaling ;
-                  swarmui:status ?oldservicestate .
+                  swarmui:status ?oldstatus .
 
                 BIND(IF(?oldscaling < {{scaling}},
                   ?oldscaling, {{scaling}}) AS ?newscaling) .
+            }
+            """,
+            project_id=escape_string(project_id),
+            service_name=escape_string(service_name),
+            scaling=(container_number - 1),
+            service_status=service_status)
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?pipeline swarmui:status ?oldstatus .
+            }
+            INSERT {
+                ?pipeline swarmui:status ?newstatus .
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:status ?oldstatus ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} .
+
+                FILTER ( ?oldstatus NOT IN (swarmui:Down, swarmui:Stopped) )
 
                 OPTIONAL {
                     ?pipeline swarmui:services ?otherservice .
@@ -448,13 +489,11 @@ class Application(web.Application):
                 } .
 
                 BIND(IF(BOUND(?otherservice), swarmui:Started, swarmui:Stopped)
-                  AS ?newstate) .
+                  AS ?newstatus) .
             }
             """,
             project_id=escape_string(project_id),
-            service_name=escape_string(service_name),
-            scaling=(container_number - 1),
-            service_status=service_status)
+            service_name=escape_string(service_name))
 
 
 async def stop_cleanup(app):
