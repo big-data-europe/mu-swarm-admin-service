@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/big-data-europe/mu-swarm-admin-service.svg?branch=master)](https://travis-ci.org/big-data-europe/mu-swarm-admin-service)
 [![codecov](https://codecov.io/gh/big-data-europe/mu-swarm-admin-service/branch/master/graph/badge.svg)](https://codecov.io/gh/big-data-europe/mu-swarm-admin-service)
 
 Mu Swarm Admin Service
