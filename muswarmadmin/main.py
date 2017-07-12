@@ -490,11 +490,11 @@ async def stop_event_monitor(app):
 
 
 app = Application()
-app.on_cleanup.append(stop_action_schedulers)
+app.on_startup.append(eventmonitor.startup)
+app.on_startup.append(delta.startup)
 app.on_startup.append(start_event_monitor)
 app.on_cleanup.append(stop_event_monitor)
+app.on_cleanup.append(stop_action_schedulers)
 app.on_cleanup.append(stop_cleanup)
-app.on_startup.append(delta.startup)
-app.on_startup.append(eventmonitor.startup)
 app.router.add_post("/update", delta.update)
 app.router.add_get("/services/{id}/logs", services.logs)
