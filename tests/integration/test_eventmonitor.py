@@ -1,24 +1,12 @@
 import subprocess
 from aiosparql.syntax import Node, RDF
 
-import muswarmadmin.eventmonitor
-import muswarmadmin.main
 from muswarmadmin.prefixes import Dct, Doap, Mu, SwarmUI
 
 from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 
 class BaseEventMonitorTestCase(IntegrationTestCase):
-    async def get_application(self):
-        app = muswarmadmin.main.Application()
-        app.sparql_timeout = self.sparql_timeout
-        app.on_cleanup.append(muswarmadmin.main.stop_action_schedulers)
-        app.on_startup.append(muswarmadmin.main.start_event_monitor)
-        app.on_cleanup.append(muswarmadmin.main.stop_event_monitor)
-        app.on_cleanup.append(muswarmadmin.main.stop_cleanup)
-        app.on_startup.append(muswarmadmin.eventmonitor.startup)
-        return app
-
     async def prepare_database(self):
         await super().prepare_database()
         repository_id = self.uuid4()
