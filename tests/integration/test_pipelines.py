@@ -32,22 +32,14 @@ class PipelinesTestCase(IntegrationTestCase):
             (pipeline_iri, SwarmUI.requestedStatus, action),
         ])
         await self.scheduler_complete(pipeline_id)
-        result = await self.describe(pipeline_iri)
-        self.assertTrue(result and result[pipeline_iri])
-        self.assertEqual(len(result[pipeline_iri][SwarmUI.status]), 1)
-        self.assertEqual(result[pipeline_iri][SwarmUI.status][0]['value'],
-                         action)
+        await self.assertStatus(pipeline_iri, action)
 
     async def restart_action(self, pipeline_iri, pipeline_id):
         await self.insert_triples([
             (pipeline_iri, SwarmUI.restartRequested, "true"),
         ])
         await self.scheduler_complete(pipeline_id)
-        result = await self.describe(pipeline_iri)
-        self.assertTrue(result and result[pipeline_iri])
-        self.assertEqual(len(result[pipeline_iri][SwarmUI.status]), 1)
-        self.assertEqual(result[pipeline_iri][SwarmUI.status][0]['value'],
-                         SwarmUI.Started)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
 
     @unittest_run_loop
     async def test_pipeline_actions(self):
