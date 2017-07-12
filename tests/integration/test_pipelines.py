@@ -58,8 +58,8 @@ class PipelinesTestCase(IntegrationTestCase):
     @unittest_run_loop
     async def test_pipeline_actions(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
-        await self.up_action(pipeline_iri, pipeline_id)
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up)
         await self.restart_action(pipeline_iri, pipeline_id)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started)
-        await self.down_action(pipeline_iri, pipeline_id)
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down)
