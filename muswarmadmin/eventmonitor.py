@@ -13,6 +13,8 @@ async def watch(docker, handlers):
                 for handler in handlers[event["Type"]]:
                     try:
                         await handler(event)
+                    except asyncio.CancelledError:
+                        raise
                     except Exception:
                         logger.exception("Event handler %r failed", handler)
     except asyncio.CancelledError:
