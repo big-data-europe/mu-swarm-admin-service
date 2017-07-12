@@ -355,11 +355,13 @@ class Application(web.Application):
         project_id = project_name.upper()
 
         if event["Action"] == "start":
-            await self.event_container_started(container_id, project_id,
-                                               service_name, container_number)
+            await self.enqueue_action(
+                project_id, self.event_container_started,
+                [container_id, project_id, service_name, container_number])
         elif event["Action"] == "die":
-            await self.event_container_died(project_id, service_name,
-                                            container_number)
+            await self.enqueue_action(
+                project_id, self.event_container_died,
+                [project_id, service_name, container_number])
 
     async def event_container_started(self, container_id, project_id,
                                       service_name, container_number):
