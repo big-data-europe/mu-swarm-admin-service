@@ -10,7 +10,11 @@ class SwarmUI(Namespace):
 
     Down = PrefixedName
     Error = PrefixedName
+    Killed = PrefixedName
+    Killing = PrefixedName
     Pipeline = PrefixedName
+    Removed = PrefixedName
+    Removing = PrefixedName
     Repository = PrefixedName
     Restarting = PrefixedName
     Scaling = PrefixedName

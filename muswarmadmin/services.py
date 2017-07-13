@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 _state_to_action = {
     SwarmUI.Started: (["start"], SwarmUI.Starting),
     SwarmUI.Stopped: (["stop"], SwarmUI.Stopping),
+    SwarmUI.Killed: (["kill"], SwarmUI.Killing),
+    SwarmUI.Removed: (["rm", "-vf"], SwarmUI.Removing),
 }
 
 
@@ -28,6 +30,8 @@ async def do_action(app, project_id, service_id,
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(service_id, SwarmUI.Error)
+    else:
+        await app.update_state(service_id, end_state)
 
 
 async def up_action(app, project_id, service_id):
