@@ -66,3 +66,15 @@ class ServicesTestCase(IntegrationTestCase):
         subprocess.check_call(["docker-compose", "start"], cwd=project_path)
         await self.wait_scheduler(pipeline_id)
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
+
+    @unittest_run_loop
+    async def test_up_action(self):
+        pipeline_iri, pipeline_id = await self.create_pipeline()
+        services = await self.get_services(pipeline_id)
+        service_iri, service_id = services["service1"]
+        await self.insert_triples([
+            (service_iri, SwarmUI.requestedStatus, SwarmUI.Up),
+        ])
+        await self.scheduler_complete(pipeline_id)
+        await self.assertStatus(service_iri, SwarmUI.Up)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)

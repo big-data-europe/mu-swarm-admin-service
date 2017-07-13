@@ -18,7 +18,7 @@ _state_to_action = {
 async def do_action(app, project_id, service_id,
                     args, pending_state, end_state):
     """
-    Action triggered for any change of swarmui:requestedStatus
+    Action triggered for any change of swarmui:requestedStatus but swarmui:Up
     """
     logger.info("Changing service %s status to %s", service_id, end_state)
     await app.update_state(service_id, pending_state)
@@ -28,6 +28,21 @@ async def do_action(app, project_id, service_id,
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(service_id, SwarmUI.Error)
+
+
+async def up_action(app, project_id, service_id):
+    """
+    Action triggered for a change of swarmui:requestedStatus to swarmui:Up
+    """
+    logger.info("Changing service %s status to %s", service_id, SwarmUI.Up)
+    await app.update_state(service_id, SwarmUI.Starting)
+    service_name = await app.get_dct_title(service_id)
+    proc = await app.run_command("docker-compose", "up", "-d", service_name,
+                                 cwd="/data/%s" % project_id)
+    if proc.returncode is not 0:
+        await app.update_state(service_id, SwarmUI.Error)
+    else:
+        await app.update_state(service_id, SwarmUI.Up)
 
 
 async def restart_action(app, project_id, service_id):
@@ -67,7 +82,10 @@ async def update(app, inserts, deletes):
                 project_id = await app.get_service_pipeline(service_id)
                 await app.enqueue_action(
                     project_id, app.reset_status_requested, [service_id])
-                if triple.o in _state_to_action:
+                if triple.o == SwarmUI.Up:
+                    await app.enqueue_action(project_id, up_action,
+                                             [app, project_id, service_id])
+                elif triple.o in _state_to_action:
                     args, pending_state = _state_to_action[triple.o]
                     await app.enqueue_action(
                         project_id, do_action,
