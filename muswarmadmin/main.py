@@ -459,12 +459,10 @@ class Application(web.Application):
             """
             WITH {{graph}}
             DELETE {
-                ?service swarmui:status ?oldstatus ;
-                  swarmui:scaling ?oldscaling .
+                ?service swarmui:scaling ?oldscaling
             }
             INSERT {
-                ?service swarmui:status {{service_status}} ;
-                  swarmui:scaling ?newscaling .
+                ?service swarmui:scaling ?newscaling
             }
             WHERE {
                 ?pipeline a swarmui:Pipeline ;
@@ -473,8 +471,7 @@ class Application(web.Application):
 
                 ?service a swarmui:Service ;
                   dct:title {{service_name}} ;
-                  swarmui:scaling ?oldscaling ;
-                  swarmui:status ?oldstatus .
+                  swarmui:scaling ?oldscaling .
 
                 BIND(IF(?oldscaling < {{scaling}},
                   ?oldscaling, {{scaling}}) AS ?newscaling) .
@@ -482,7 +479,30 @@ class Application(web.Application):
             """,
             project_id=escape_string(project_id),
             service_name=escape_string(service_name),
-            scaling=(container_number - 1),
+            scaling=(container_number - 1))
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?service swarmui:status ?oldstatus
+            }
+            INSERT {
+                ?service swarmui:status {{service_status}}
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} ;
+                  swarmui:status ?oldstatus .
+
+                FILTER ( ?oldstatus NOT IN (swarmui:Killed, swarmui:Stopped) )
+            }
+            """,
+            project_id=escape_string(project_id),
+            service_name=escape_string(service_name),
             service_status=service_status)
         await self.sparql.update(
             """

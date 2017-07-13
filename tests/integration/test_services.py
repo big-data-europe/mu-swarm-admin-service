@@ -51,6 +51,13 @@ class ServicesTestCase(IntegrationTestCase):
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.scale_action(pipeline_id, service_iri, service_id, 2)
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
+        for service_iri, service_id in services.values():
+            await self.do_action(pipeline_id, service_iri, service_id,
+                                 SwarmUI.Killed)
+        await self.assertStatus(pipeline_iri, SwarmUI.Stopped)
+        for service_iri, service_id in services.values():
+            await self.do_action(pipeline_id, service_iri, service_id,
+                                 SwarmUI.Removed)
 
     @unittest_run_loop
     async def test_manual_actions(self):
