@@ -26,7 +26,7 @@ class Triple:
         else:
             raise NotImplementedError("object type %s" % data['o']['type'])
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return "<%s s=%s p=%s o=%s>" % (
             self.__class__.__name__, self.s, self.p, self.o)
 
@@ -55,7 +55,7 @@ class UpdateData:
         self.inserts = list(inserts - null_operations)
         self.deletes = list(deletes - null_operations)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return "<%s graph=%s inserts=%s deletes=%s>" % (
             self.__class__.__name__, self.graph, self.inserts, self.deletes)
 
