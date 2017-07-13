@@ -26,10 +26,10 @@ class ServicesTestCase(IntegrationTestCase):
             (service_iri, SwarmUI.requestedScaling, value),
         ])
         await self.scheduler_complete(pipeline_id)
-        await self.assertNode(service_iri, [
-            (SwarmUI.status, SwarmUI.Started),
-            (SwarmUI.scaling, value),
-        ])
+        await self.assertNode(service_iri, {
+            SwarmUI.status: SwarmUI.Started,
+            SwarmUI.scaling: value,
+        })
 
     @unittest_run_loop
     async def test_actions(self):

@@ -10,7 +10,6 @@ from aiohttp.test_utils import (
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_string, IRI, Node, RDF, Triples
 from copy import copy
-from itertools import groupby
 from yarl import URL
 
 import muswarmadmin.delta
@@ -196,10 +195,16 @@ class IntegrationTestCase(AioHTTPTestCase):
     async def assertNode(self, subject, values):
         result = await self.describe(subject)
         self.assertTrue(result and result[subject])
-        for p, group_o in groupby(values, lambda x: x[0]):
-            expected_values = set([x[1] for x in group_o])
-            result_values = set([x['value'] for x in result[subject][p]])
-            self.assertEqual(result_values, expected_values)
+        for p, o in values.items():
+            found_values = [x['value'] for x in result[subject][p]]
+            self.assertEqual(
+                len(found_values), 1,
+                "multiple predicates {} in node's subject {}: {!r}".format(
+                    p, subject, found_values))
+            self.assertEqual(
+                found_values[0], o,
+                "predicate {} in node {} has value {}, expected {}".format(
+                    p, subject, found_values[0], o))
 
     async def assertStatus(self, subject, status):
-        await self.assertNode(subject, [(SwarmUI.status, status)])
+        await self.assertNode(subject, {SwarmUI.status: status})
