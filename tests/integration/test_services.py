@@ -6,8 +6,7 @@ from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 
 class ServicesTestCase(IntegrationTestCase):
-    async def do_action(self, pipeline_id, service_iri, service_id, action,
-                        pending_state):
+    async def do_action(self, pipeline_id, service_iri, service_id, action):
         await self.insert_triples([
             (service_iri, SwarmUI.requestedStatus, action),
         ])
@@ -42,14 +41,16 @@ class ServicesTestCase(IntegrationTestCase):
         await self.assertStatus(pipeline_iri, SwarmUI.Up)
         for service_iri, service_id in services.values():
             await self.do_action(pipeline_id, service_iri, service_id,
-                                 SwarmUI.Stopped, SwarmUI.Stopping)
+                                 SwarmUI.Stopped)
         await self.assertStatus(pipeline_iri, SwarmUI.Stopped)
         for service_iri, service_id in services.values():
             await self.do_action(pipeline_id, service_iri, service_id,
-                                 SwarmUI.Started, SwarmUI.Starting)
+                                 SwarmUI.Started)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.restart_action(pipeline_id, service_iri, service_id)
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.scale_action(pipeline_id, service_iri, service_id, 2)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
 
     @unittest_run_loop
     async def test_manual_actions(self):
