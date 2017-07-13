@@ -370,16 +370,16 @@ class Application(web.Application):
         """
         if not await self.ensure_resource_id_exists(project_id):
             return
+        # NOTE: I don't think Delta service works with multiple updates queries
+        #       in a single HTTP request.
         await self.sparql.update(
             """
             WITH {{graph}}
             DELETE {
-                ?service swarmui:status ?oldstatus ;
-                  swarmui:scaling ?oldscaling .
+                ?service swarmui:scaling ?oldscaling
             }
             INSERT {
-                ?service swarmui:status swarmui:Started ;
-                  swarmui:scaling ?newscaling .
+                ?service swarmui:scaling ?newscaling
             }
             WHERE {
                 ?pipeline a swarmui:Pipeline ;
@@ -388,8 +388,7 @@ class Application(web.Application):
 
                 ?service a swarmui:Service ;
                   dct:title {{service_name}} ;
-                  swarmui:scaling ?oldscaling ;
-                  swarmui:status ?oldstatus .
+                  swarmui:scaling ?oldscaling .
 
                 BIND(IF(?oldscaling > {{scaling}},
                   ?oldscaling, {{scaling}}) AS ?newscaling) .
@@ -397,6 +396,28 @@ class Application(web.Application):
             """, project_id=escape_string(project_id),
             service_name=escape_string(service_name),
             scaling=container_number)
+        await self.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                ?service swarmui:status ?oldstatus
+            }
+            INSERT {
+                ?service swarmui:status swarmui:Started
+            }
+            WHERE {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{project_id}} ;
+                  swarmui:services ?service .
+
+                ?service a swarmui:Service ;
+                  dct:title {{service_name}} ;
+                  swarmui:status ?oldstatus .
+
+                FILTER ( ?oldstatus NOT IN (swarmui:Up, swarmui:Started) )
+            }
+            """, project_id=escape_string(project_id),
+            service_name=escape_string(service_name))
         await self.sparql.update(
             """
             WITH {{graph}}
@@ -432,6 +453,8 @@ class Application(web.Application):
         service_status = (
             SwarmUI.Started if container_number > 1 else SwarmUI.Stopped
         )
+        # NOTE: I don't think Delta service works with multiple updates queries
+        #       in a single HTTP request.
         await self.sparql.update(
             """
             WITH {{graph}}
