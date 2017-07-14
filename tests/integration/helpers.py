@@ -20,6 +20,9 @@ from muswarmadmin.prefixes import Doap, Mu, SwarmUI
 __all__ = ['IntegrationTestCase', 'unittest_run_loop']
 
 
+_sentinel = object()
+
+
 # NOTE: temporary fix: ensure a child watcher is set before running test
 def setup_test_loop(loop_factory=asyncio.new_event_loop):  # noqa
     """Create and return an asyncio.BaseEventLoop
@@ -121,8 +124,8 @@ class IntegrationTestCase(AioHTTPTestCase):
         return await self.app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
                                            subject)
 
-    async def create_pipeline(self, location=None):
-        if location is None:
+    async def create_pipeline(self, location=_sentinel):
+        if location is _sentinel:
             location = self.example_repo
         repository_id = self.uuid4()
         repository_iri = self.resource("repositories", repository_id)

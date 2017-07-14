@@ -86,8 +86,10 @@ async def update(app, inserts, deletes):
                     logger.error("Pipeline %s: can not clone repository %s, "
                                  "location not specified",
                                  project_id, repository_id)
-                    await app.update_state(project_id, SwarmUI.Error)
-                    return
+                    await app.enqueue_action(
+                        project_id, app.update_state,
+                        [project_id, SwarmUI.Error])
+                    continue
                 await app.enqueue_action(project_id, initialize_pipeline, [
                     app, triple.o, project_id, location, branch,
                 ])
