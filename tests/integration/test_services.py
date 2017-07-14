@@ -86,3 +86,18 @@ class ServicesTestCase(IntegrationTestCase):
         await self.scheduler_complete(pipeline_id)
         await self.assertStatus(service_iri, SwarmUI.Up)
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
+
+    @unittest_run_loop
+    async def test_logs(self):
+        pipeline_iri, pipeline_id = await self.create_pipeline()
+        services = await self.get_services(pipeline_id)
+        service_iri, service_id = services["service1"]
+        await self.insert_triples([
+            (service_iri, SwarmUI.requestedStatus, SwarmUI.Up),
+        ])
+        await self.scheduler_complete(pipeline_id)
+        await self.assertStatus(service_iri, SwarmUI.Up)
+        async with self.client.get(f"/services/{service_id}/logs") as request:
+            self.assertEqual(request.status, 200)
+        async with self.client.get(f"/services/invalid/logs") as request:
+            self.assertEqual(request.status, 404)
