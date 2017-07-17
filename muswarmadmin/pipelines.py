@@ -1,9 +1,9 @@
 import logging
 import os
-from aiosparql.syntax import IRI, Literal
+from aiosparql.syntax import escape_string, IRI, Literal
 from shutil import rmtree
 
-from muswarmadmin.prefixes import Mu, SwarmUI
+from muswarmadmin.prefixes import SwarmUI
 from muswarmadmin.actionscheduler import StopScheduler
 
 
@@ -19,19 +19,44 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     project_path = "/data/%s" % project_id
     if not os.path.exists(project_path):
         raise StopScheduler()
+    await app.update_state(project_id, SwarmUI.Removing)
     await app.run_command(
         "docker-compose", "down", cwd="/data/%s" % project_id)
     rmtree(project_path)
-    raise StopScheduler()
-
-
-async def delete_all_triples(app, subject):
     await app.sparql.update("""
-        DELETE WHERE {
-            GRAPH {{graph}} {
-                {{}} ?p ?o
-            }
-        }""", subject)
+        # NOTE: DELETE WHERE is not handled by the Delta service
+        #DELETE WHERE {
+        #    GRAPH {{graph}} {
+        #        ?pipeline mu:uuid {{project_id}} ;
+        #          swarmui:services ?service ;
+        #          ?p1 ?o1 .
+        #
+        #        ?service ?p2 ?o2 .
+        #
+        #        ?repository swarmui:pipelines ?pipeline .
+        #    }
+        #}
+        WITH {{graph}}
+        DELETE {
+            ?pipeline mu:uuid {{project_id}} ;
+              swarmui:services ?service ;
+              ?p1 ?o1 .
+
+            ?service ?p2 ?o2 .
+
+            ?repository swarmui:pipelines ?pipeline .
+        }
+        WHERE {
+            ?pipeline mu:uuid {{project_id}} ;
+              swarmui:services ?service ;
+              ?p1 ?o1 .
+
+            ?service ?p2 ?o2 .
+
+            ?repository swarmui:pipelines ?pipeline .
+        }
+        """, project_id=escape_string(project_id))
+    raise StopScheduler()
 
 
 _state_to_action = {
@@ -88,6 +113,7 @@ async def update(app, inserts, deletes):
     logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
+
             if triple.p == SwarmUI.requestedStatus:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
@@ -105,6 +131,7 @@ async def update(app, inserts, deletes):
                 else:
                     logger.error("Requested status not implemented: %s",
                                  triple.o.value)
+
             elif triple.p == SwarmUI.restartRequested:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
@@ -116,25 +143,17 @@ async def update(app, inserts, deletes):
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id])
 
-    for subject, triples in deletes.items():
-        uuid = None
-        services_iri = []
-        for triple in triples:
-            if triple.p == Mu.uuid:
+            elif triple.p == SwarmUI.deleteRequested:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
-                uuid = triple.o.value
-            elif triple.p == SwarmUI.services:
-                assert isinstance(triple.o, IRI), \
-                    "wrong type: %r" % type(triple.o)
-                services_iri.append(triple.o)
-        if uuid:
-            for service_iri in services_iri:
-                await app.enqueue_action(uuid, delete_all_triples,
-                                         [app, services_iri])
-            await app.enqueue_action(
-                uuid, shutdown_and_cleanup_pipeline,
-                [app, uuid])
+                if not triple.o == "true":
+                    continue
+                project_id = await app.get_resource_id(subject)
+                await app.enqueue_action(
+                    project_id, app.reset_delete_requested, [project_id])
+                await app.enqueue_action(
+                    project_id, shutdown_and_cleanup_pipeline,
+                    [app, project_id])
 
 
 async def get_existing_updates(sparql):

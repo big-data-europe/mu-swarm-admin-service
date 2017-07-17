@@ -8,7 +8,7 @@ from aiohttp.test_utils import (
     AioHTTPTestCase, TestClient, TestServer, setup_test_loop,
     unittest_run_loop)
 from aiosparql.client import SPARQLClient
-from aiosparql.syntax import escape_string, IRI, Node, RDF, Triples
+from aiosparql.syntax import escape_any, IRI, Node, RDF, Triples
 from copy import copy
 from yarl import URL
 
@@ -106,6 +106,14 @@ class IntegrationTestCase(AioHTTPTestCase):
     def project_exists(self, project_name):
         return os.path.exists("/data/%s" % project_name)
 
+    async def triple_exists(self, s=None, p=None, o=None):
+        s = escape_any(s) if s is not None else "?s"
+        p = escape_any(p) if p is not None else "?p"
+        o = escape_any(o) if o is not None else "?o"
+        result = await self.app.sparql.query(
+            "ASK FROM {{graph}} WHERE { {{}} {{}} {{}} }", s, p, o)
+        return result['boolean']
+
     async def prepare_triples(self, triples):
         await self.db.update(
             "INSERT DATA { GRAPH {{graph}} { {{}} } }", Triples(triples))
@@ -155,7 +163,7 @@ class IntegrationTestCase(AioHTTPTestCase):
                 ?service mu:uuid ?uuid ;
                   dct:title ?name .
             }
-            """, escape_string(project_name))
+            """, escape_any(project_name))
         return {
             x['name']['value']: (IRI(x['service']['value']),
                                  x['uuid']['value'])
@@ -211,3 +219,9 @@ class IntegrationTestCase(AioHTTPTestCase):
 
     async def assertStatus(self, subject, status):
         await self.assertNode(subject, {SwarmUI.status: status})
+
+    async def assertExists(self, s=None, p=None, o=None):
+        self.assertTrue(await self.triple_exists(s, p, o))
+
+    async def assertNotExists(self, s=None, p=None, o=None):
+        self.assertFalse(await self.triple_exists(s, p, o))
