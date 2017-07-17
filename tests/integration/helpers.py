@@ -72,7 +72,7 @@ class FixedPortTestServer(TestServer):
 
 class IntegrationTestCase(AioHTTPTestCase):
     example_repo = \
-        "https://github.com/cecton/docker-compose-for-testing.git"
+        "https://github.com/big-data-europe/mu-swarm-ui-testing.git"
     sparql_timeout = 5
 
     async def get_application(self):
