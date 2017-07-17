@@ -93,16 +93,6 @@ class Application(web.Application):
         return self._network
 
     @property
-    async def labels(self):
-        """
-        The labels of the container running this application
-        """
-        if not hasattr(self, '_labels'):
-            container = await self.container
-            self._labels = container['Config']['Labels']
-        return self._labels
-
-    @property
     async def project(self):
         """
         The Docker Compose project of the container running this application
