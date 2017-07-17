@@ -7,25 +7,13 @@ class PipelinesTestCase(IntegrationTestCase):
     @unittest_run_loop
     async def test_pipeline_removal(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
-        await self.app.sparql.update(
-            """
-            # NOTE: temporarily use the alternative syntax because DELETE WHERE
-            #       is not handled by the delta service
-            #DELETE WHERE {
-            #    GRAPH {{graph}} {
-            #        {{pipeline_iri}} ?p ?o
-            #    }
-            #}
-            WITH {{graph}}
-            DELETE {
-                {{pipeline_iri}} ?p ?o
-            }
-            WHERE {
-                {{pipeline_iri}} ?p ?o
-            }
-            """, pipeline_iri=pipeline_iri)
+        await self.insert_triples([
+            (pipeline_iri, SwarmUI.deleteRequested, "true"),
+        ])
         await self.scheduler_complete(pipeline_id)
         self.assertFalse(self.project_exists(pipeline_id))
+        await self.assertNotExists(s=pipeline_iri)
+        await self.assertNotExists(o=pipeline_iri)
 
     async def do_action(self, pipeline_iri, pipeline_id, action):
         await self.insert_triples([

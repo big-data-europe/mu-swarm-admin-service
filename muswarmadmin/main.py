@@ -226,6 +226,22 @@ class Application(web.Application):
             }
             """, uuid=escape_string(uuid))
 
+    async def reset_delete_requested(self, uuid):
+        """
+        Helper that removes any swarmui:deleteRequested triple of a node
+        given in parameter
+        """
+        await self.sparql.update("""
+            WITH {{graph}}
+            DELETE {
+                ?s swarmui:deleteRequested ?oldvalue .
+            }
+            WHERE {
+                ?s mu:uuid {{uuid}} ;
+                  swarmui:deleteRequested ?oldvalue .
+            }
+            """, uuid=escape_string(uuid))
+
     async def get_dct_title(self, uuid):
         """
         Get the dct:title of a node

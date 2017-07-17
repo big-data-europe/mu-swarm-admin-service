@@ -25,6 +25,7 @@ class SwarmUI(Namespace):
     Stopping = PrefixedName
     Up = PrefixedName
     branch = PrefixedName
+    deleteRequested = PrefixedName
     pipelines = PrefixedName
     requestedScaling = PrefixedName
     requestedStatus = PrefixedName
