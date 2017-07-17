@@ -139,7 +139,7 @@ async def update(app, inserts, deletes):
                     continue
                 project_id = await app.get_resource_id(subject)
                 await app.enqueue_action(
-                    project_id, app.reset_status_requested, [project_id])
+                    project_id, app.reset_restart_requested, [project_id])
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id])
 

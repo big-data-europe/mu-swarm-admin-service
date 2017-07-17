@@ -42,6 +42,7 @@ class PipelinesTestCase(IntegrationTestCase):
         ])
         await self.scheduler_complete(pipeline_id)
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
+        await self.assertNotExists(s=pipeline_iri, p=SwarmUI.restartRequested)
 
     @unittest_run_loop
     async def test_pipeline_actions(self):
