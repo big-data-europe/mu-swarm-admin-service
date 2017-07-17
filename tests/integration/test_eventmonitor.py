@@ -1,4 +1,6 @@
+import os
 import subprocess
+import sys
 from aiosparql.syntax import Node, RDF
 
 from muswarmadmin.prefixes import Dct, Doap, Mu, SwarmUI
@@ -89,3 +91,21 @@ class DockerUpdatedEventMonitorTestCase(BaseEventMonitorTestCase):
         result = await self.describe(self.pipeline_iri)
         self.assertEqual(result[self.pipeline_iri][SwarmUI.status][0]['value'],
                          SwarmUI.Started)
+
+
+def test_docker_not_reachable():
+    env = dict(os.environ, DOCKER_HOST="unix:///var/run/nowhere", ENV="dev")
+    proc = subprocess.run([sys.executable, "-m", "muswarmadmin"], env=env)
+    assert proc.returncode == 1
+
+
+def test_database_not_reachable():
+    env = dict(os.environ, MU_SPARQL_ENDPOINT="http://nowhere", ENV="dev")
+    proc = subprocess.run([sys.executable, "-m", "muswarmadmin"], env=env)
+    assert proc.returncode == 1
+
+
+def test_database_not_answering_properly():
+    env = dict(os.environ, MU_SPARQL_ENDPOINT="http://example.org", ENV="dev")
+    proc = subprocess.run([sys.executable, "-m", "muswarmadmin"], env=env)
+    assert proc.returncode == 1

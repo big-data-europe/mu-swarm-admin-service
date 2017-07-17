@@ -1,15 +1,16 @@
 import aiodockerpy.api.client
-from aiohttp import web
-from aiosparql.client import SPARQLClient
-from aiosparql.syntax import escape_string, IRI
 import asyncio
-from compose import config
-from compose.config.environment import Environment
 import docker.utils.utils
 import logging
-from os import environ as ENV
 import re
 import subprocess
+from aiohttp import web
+from aiohttp.client_exceptions import ClientConnectionError
+from aiosparql.client import SPARQLClient
+from aiosparql.syntax import escape_string, IRI
+from compose import config
+from compose.config.environment import Environment
+from os import environ as ENV
 
 from muswarmadmin import delta, eventmonitor, services
 from muswarmadmin.actionscheduler import ActionScheduler, OneActionScheduler
@@ -569,13 +570,30 @@ async def stop_event_monitor(app):
     """
     Cancel event monitor
     """
-    app['event_monitor'].cancel()
-    await app['event_monitor']
+    if 'event_monitor' in app:
+        app['event_monitor'].cancel()
+        try:
+            await app['event_monitor']
+        except SystemExit:
+            pass
+
+
+def startup_wrapper(coro):
+    async def wrapper(app):
+        try:
+            await coro(app)
+        except ClientConnectionError as exc:
+            logger.error(str(exc))
+            exit(1)
+        except Exception:
+            logger.exception("Startup failure")
+            raise
+    return wrapper
 
 
 app = Application()
-app.on_startup.append(eventmonitor.startup)
-app.on_startup.append(delta.startup)
+app.on_startup.append(startup_wrapper(eventmonitor.startup))
+app.on_startup.append(startup_wrapper(delta.startup))
 app.on_startup.append(start_event_monitor)
 app.on_cleanup.append(stop_event_monitor)
 app.on_cleanup.append(stop_action_schedulers)
