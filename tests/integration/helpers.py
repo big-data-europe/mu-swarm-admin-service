@@ -149,6 +149,8 @@ class IntegrationTestCase(AioHTTPTestCase):
             }),
         }))
         await self.scheduler_complete(pipeline_id)
+        self.repository_iri = repository_iri
+        self.repository_id = repository_id
         return (pipeline_iri, pipeline_id)
 
     async def get_services(self, project_name):

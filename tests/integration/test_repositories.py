@@ -1,3 +1,4 @@
+from muswarmadmin.actionscheduler import ActionScheduler
 from muswarmadmin.prefixes import SwarmUI
 
 from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
@@ -27,3 +28,15 @@ class RepositoriesTestCase(IntegrationTestCase):
         self.assertTrue(result and result[pipeline_iri])
         self.assertNotIn(SwarmUI.services, result[pipeline_iri])
         self.assertFalse(self.project_exists(pipeline_id))
+
+    @unittest_run_loop
+    async def test_pipeline_removal(self):
+        pipeline_iri, pipeline_id = await self.create_pipeline()
+        await self.insert_triples([
+            (self.repository_iri, SwarmUI.deleteRequested, "true"),
+        ])
+        await self.scheduler_complete(self.repository_id)
+        await self.assertNotExists(s=self.repository_iri)
+        self.assertNotIn(pipeline_id, ActionScheduler.executers)
+        self.assertFalse(self.project_exists(pipeline_id))
+        await self.assertNotExists(s=pipeline_iri)

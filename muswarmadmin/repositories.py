@@ -1,9 +1,10 @@
 import logging
 import os
-from aiosparql.syntax import IRI, Node, RDF, RDFTerm, Triples
+from aiosparql.syntax import IRI, Literal, Node, RDF, RDFTerm, Triples
 from shutil import rmtree
 from uuid import uuid4
 
+import muswarmadmin.pipelines
 from muswarmadmin.prefixes import Dct, Doap, Mu, SwarmUI
 
 
@@ -65,6 +66,48 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
         await app.update_state(project_id, SwarmUI.Down)
 
 
+async def remove_repository(app, repository):
+    """
+    Remove a repository by shutting down and removing all the associated
+    pipelines then remove the repository itself
+    """
+    logger.info("Removing repository %s", repository)
+    result = await app.sparql.query(
+        """
+        SELECT *
+        FROM {{graph}}
+        WHERE {
+            {{}} swarmui:pipelines ?pipeline .
+            ?pipeline mu:uuid ?uuid .
+        }
+        """, repository)
+    if not result['results']['bindings'] or \
+            not result['results']['bindings'][0]:
+        logger.debug("No pipeline for repository %s", repository)
+        return
+    pipelines = [
+        data['uuid']['value']
+        for data in result['results']['bindings']
+    ]
+    for pipeline_id in pipelines:
+        await app.enqueue_action(
+            pipeline_id, muswarmadmin.pipelines.shutdown_and_cleanup_pipeline,
+            [app, pipeline_id])
+    for pipeline_id in pipelines:
+        await app.wait_action(pipeline_id)
+    await app.sparql.update(
+        """
+        # NOTE: DELETE WHERE is not handled by the Delta service
+        WITH {{graph}}
+        DELETE {
+            {{repository}} ?p ?o
+        }
+        WHERE {
+            {{repository}} ?p ?o
+        }
+        """, repository=repository)
+
+
 async def update(app, inserts, deletes):
     """
     Handler for the updates of the repositories received by the Delta service
@@ -72,6 +115,7 @@ async def update(app, inserts, deletes):
     logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
+
             if triple.p == SwarmUI.pipelines:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
@@ -93,6 +137,15 @@ async def update(app, inserts, deletes):
                 await app.enqueue_action(project_id, initialize_pipeline, [
                     app, triple.o, project_id, location, branch,
                 ])
+
+            elif triple.p == SwarmUI.deleteRequested:
+                assert isinstance(triple.o, Literal), \
+                    "wrong type: %r" % type(triple.o)
+                if not triple.o == "true":
+                    continue
+                repository_id = await app.get_resource_id(subject)
+                await app.enqueue_action(repository_id, remove_repository,
+                                         [app, subject])
 
 
 async def get_existing_updates(sparql):
