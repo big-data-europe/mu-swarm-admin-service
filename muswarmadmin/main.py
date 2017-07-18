@@ -337,6 +337,13 @@ class Application(web.Application):
         """
         await ActionScheduler.execute(key, action, args, loop=self.loop)
 
+    async def wait_action(self, key):
+        """
+        Wait for an ActionScheduler to complete (and remove the background task
+        that come with it)
+        """
+        await ActionScheduler.executers[key].cancel()
+
     async def enqueue_one_action(self, key, action, args):
         """
         Enqueue an action in the queue of a OneActionScheduler. The
