@@ -31,12 +31,14 @@ class RepositoriesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_pipeline_removal(self):
-        pipeline_iri, pipeline_id = await self.create_pipeline()
+        repository_iri, repository_id = await self.create_repository()
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         await self.insert_triples([
-            (self.repository_iri, SwarmUI.deleteRequested, "true"),
+            (repository_iri, SwarmUI.deleteRequested, "true"),
         ])
-        await self.scheduler_complete(self.repository_id)
-        await self.assertNotExists(s=self.repository_iri)
+        await self.scheduler_complete(repository_id)
+        await self.assertNotExists(s=repository_iri)
         self.assertNotIn(pipeline_id, ActionScheduler.executers)
         self.assertFalse(self.project_exists(pipeline_id))
         await self.assertNotExists(s=pipeline_iri)

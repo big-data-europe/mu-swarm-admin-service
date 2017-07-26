@@ -132,25 +132,34 @@ class IntegrationTestCase(AioHTTPTestCase):
         return await self.app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
                                            subject)
 
-    async def create_pipeline(self, location=_sentinel):
+    async def create_repository(self, location=_sentinel):
         if location is _sentinel:
             location = self.example_repo
         repository_id = self.uuid4()
         repository_iri = self.resource("repositories", repository_id)
-        pipeline_id = self.uuid4()
-        pipeline_iri = self.resource("pipeline-instances", pipeline_id)
         await self.insert_node(Node(repository_iri, {
             RDF.type: Doap.GitRepository,
             Mu.uuid: repository_id,
             Doap.location: location,
-            SwarmUI.pipelines: Node(pipeline_iri, {
-                RDF.type: SwarmUI.Pipeline,
-                Mu.uuid: pipeline_id,
-            }),
         }))
+        return (repository_iri, repository_id)
+
+    async def create_pipeline(self, repository_iri=_sentinel,
+                              location=_sentinel):
+        if repository_iri is _sentinel:
+            repository_iri, repository_id = \
+                await self.create_repository(location=location)
+        pipeline_id = self.uuid4()
+        pipeline_iri = self.resource("pipeline-instances", pipeline_id)
+        pipeline_node = Node(pipeline_iri, {
+            RDF.type: SwarmUI.Pipeline,
+            Mu.uuid: pipeline_id,
+        })
+        await self.insert_triples([
+            pipeline_node,
+            (repository_iri, SwarmUI.pipelines, pipeline_node),
+        ])
         await self.scheduler_complete(pipeline_id)
-        self.repository_iri = repository_iri
-        self.repository_id = repository_id
         return (pipeline_iri, pipeline_id)
 
     async def get_services(self, project_name):
