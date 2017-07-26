@@ -262,7 +262,7 @@ class Application(web.Application):
 
     async def get_service_pipeline(self, service_id):
         """
-        Get the pipeline ID of a service given in paramater
+        Get the pipeline ID of a service given in parameter
         """
         result = await self.sparql.query("""
             SELECT ?uuid
