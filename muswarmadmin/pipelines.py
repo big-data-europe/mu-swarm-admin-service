@@ -1,3 +1,4 @@
+import aiodockerpy
 import logging
 import os
 from aiosparql.syntax import escape_string, IRI, Literal
@@ -8,6 +9,16 @@ from muswarmadmin.actionscheduler import StopScheduler
 
 
 logger = logging.getLogger(__name__)
+
+
+async def remove_docker_images(app, project_id):
+    data = app.open_compose_data(project_id)
+    for image in set([x['image'] for x in data.services]):
+        try:
+            await app.docker.remove_image(image)
+        except aiodockerpy.errors.APIError as exc:
+            if exc.is_server_error():
+                logger.error(str(exc))
 
 
 async def shutdown_and_cleanup_pipeline(app, project_id):
@@ -22,6 +33,8 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     await app.update_state(project_id, SwarmUI.Removing)
     await app.run_command(
         "docker-compose", "down", cwd="/data/%s" % project_id)
+    if await app.is_last_pipeline(project_id):
+        await remove_docker_images(app, project_id)
     rmtree(project_path)
     await app.sparql.update("""
         # NOTE: DELETE WHERE is not handled by the Delta service

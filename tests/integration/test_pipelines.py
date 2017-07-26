@@ -52,3 +52,19 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down)
+
+    @unittest_run_loop
+    async def test_is_last_pipeline(self):
+        repository_iri, repository_id = await self.create_repository()
+        pipeline1_iri, pipeline1_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
+        self.assertTrue(await self.app.is_last_pipeline(pipeline1_id))
+        pipeline2_iri, pipeline2_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
+        self.assertFalse(await self.app.is_last_pipeline(pipeline1_id))
+        self.assertFalse(await self.app.is_last_pipeline(pipeline2_id))
+        await self.insert_triples([
+            (pipeline1_iri, SwarmUI.deleteRequested, "true"),
+        ])
+        await self.scheduler_complete(pipeline1_id)
+        self.assertTrue(await self.app.is_last_pipeline(pipeline2_id))
