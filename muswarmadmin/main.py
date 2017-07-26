@@ -260,6 +260,27 @@ class Application(web.Application):
             raise KeyError("resource %r not found" % uuid)
         return result['results']['bindings'][0]['title']['value']
 
+    async def is_last_pipeline(self, pipeline_id):
+        """
+        Check if the pipeline is the last one for this repository
+        """
+        result = await self.sparql.query("""
+            ASK
+            FROM {{graph}}
+            WHERE
+            {
+                ?pipeline a swarmui:Pipeline ;
+                  mu:uuid {{uuid}} .
+
+                ?repository a doap:GitRepository ;
+                  swarmui:pipelines ?pipeline ;
+                  swarmui:pipelines ?otherpipeline .
+
+                FILTER(?otherpipeline != ?pipeline)
+            }
+            """, uuid=escape_string(pipeline_id))
+        return not result['boolean']
+
     async def get_service_pipeline(self, service_id):
         """
         Get the pipeline ID of a service given in parameter
