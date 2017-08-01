@@ -588,8 +588,8 @@ async def stop_cleanup(app):
     """
     Properly close SPARQL and Docker client
     """
-    app.sparql.close()
-    app.docker.close()
+    await app.sparql.close()
+    await app.docker.close()
 
 
 async def stop_action_schedulers(app):
