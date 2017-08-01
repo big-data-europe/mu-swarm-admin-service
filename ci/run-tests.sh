@@ -18,4 +18,5 @@ exec docker run -it --rm \
 	-e MU_SPARQL_ENDPOINT=http://delta:8890/sparql \
 	-v $PWD:/src \
 	-v /var/run/docker.sock:/var/run/docker.sock \
+	-l com.docker.compose.project=APPSWARMUI \
 	bde2020/mu-swarm-admin-service:latest "${commands[@]}"
