@@ -10,6 +10,7 @@ from aiohttp.test_utils import (
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_any, IRI, Node, RDF, Triples
 from copy import copy
+from os import environ as ENV
 from yarl import URL
 
 import muswarmadmin.delta
@@ -188,6 +189,7 @@ class IntegrationTestCase(AioHTTPTestCase):
         self.loop = setup_test_loop()
 
         self.db = SPARQLClient(endpoint="http://database:8890/sparql",
+                               graph=IRI(ENV['MU_APPLICATION_GRAPH']),
                                loop=self.loop,
                                read_timeout=self.sparql_timeout)
         self.loop.run_until_complete(self.prepare_database())

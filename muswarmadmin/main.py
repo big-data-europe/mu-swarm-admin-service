@@ -44,7 +44,9 @@ class Application(web.Application):
         The SPARQL client
         """
         if not hasattr(self, '_sparql'):
-            self._sparql = SPARQLClient(loop=self.loop,
+            self._sparql = SPARQLClient(ENV['MU_SPARQL_ENDPOINT'],
+                                        graph=IRI(ENV['MU_APPLICATION_GRAPH']),
+                                        loop=self.loop,
                                         read_timeout=self.sparql_timeout)
         return self._sparql
 
