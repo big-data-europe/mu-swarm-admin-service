@@ -1,5 +1,5 @@
 import uuid
-from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp.test_utils import AioHTTPTestCase, TestServer, unittest_run_loop
 from aiosparql.test_utils import TestSPARQLClient
 
 import muswarmadmin.main
@@ -12,7 +12,10 @@ class Application(muswarmadmin.main.Application):
     @property
     def sparql(self):
         if not hasattr(self, '_sparql'):
-            self._sparql = TestSPARQLClient(self)
+            self._sparql = TestSPARQLClient(TestServer(self),
+                                            endpoint="/",
+                                            graph="http://example.org",
+                                            loop=self.loop)
         return self._sparql
 
     @property
@@ -22,9 +25,14 @@ class Application(muswarmadmin.main.Application):
 
 class UnitTestCase(AioHTTPTestCase):
     async def get_application(self):
-        app = Application()
+        app = Application(loop=self.loop)
         app.router.add_post("/update", delta.update)
+        await app.sparql.start_server()
         return app
+
+    def tearDown(self):
+        self.loop.run_until_complete(self.app.sparql.close())
+        super().tearDown()
 
     def uuid4(self):
         return str(uuid.uuid4()).replace("-", "").upper()
