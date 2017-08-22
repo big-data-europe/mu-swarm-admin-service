@@ -49,6 +49,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     if os.path.exists(project_path):
         logger.error("Pipeline at %s already exists", project_path)
         return
+    await app.update_state(project_id, SwarmUI.Initializing)
     proc = await app.run_command(
         "git", "clone", location, "-b", (branch or "master"), project_id,
         cwd="/data")
