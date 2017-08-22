@@ -129,6 +129,20 @@ class IntegrationTestCase(AioHTTPTestCase):
     async def insert_node(self, node):
         await self.insert_triples([node])
 
+    async def remove_triples(self, s=None, p=None, o=None):
+        s = escape_any(s) if s is not None else "?s"
+        p = escape_any(p) if p is not None else "?p"
+        o = escape_any(o) if o is not None else "?o"
+        await self.app.sparql.update(
+            """
+            WITH {{graph}}
+            DELETE {
+                {{s}} {{p}} {{o}}
+            }
+            WHERE {
+                {{s}} {{p}} {{o}}
+            }""", s=s, p=p, o=o)
+
     async def describe(self, subject):
         return await self.app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
                                            subject)
