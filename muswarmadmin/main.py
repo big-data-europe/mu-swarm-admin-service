@@ -356,10 +356,8 @@ class Application(web.Application):
         Run a subprocess with Docker Compose, log the output, wait for its
         execution to complete, timeout eventually. Return a process object.
         """
-        return await self.run_command("docker-compose", *args,
+        return await self.run_command("docker-compose", "--no-ansi", *args,
                                       **kwargs)
-
-    _control_char_re = re.compile(r'[\x00-\x1f\x7f-\x9f]')
 
     async def _log_streamreader(self, reader):
         """
@@ -369,7 +367,7 @@ class Application(web.Application):
             line = await reader.readline()
             if not line:
                 break
-            line = self._control_char_re.sub("", line.decode())
+            line = line.decode().rstrip()
             if line:
                 logger.info(line)
 
