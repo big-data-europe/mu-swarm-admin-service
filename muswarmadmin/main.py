@@ -351,6 +351,14 @@ class Application(web.Application):
         await proc.wait()
         return proc
 
+    async def run_compose(self, *args, **kwargs):
+        """
+        Run a subprocess with Docker Compose, log the output, wait for its
+        execution to complete, timeout eventually. Return a process object.
+        """
+        return await self.run_command("docker-compose", *args,
+                                      **kwargs)
+
     _control_char_re = re.compile(r'[\x00-\x1f\x7f-\x9f]')
 
     async def _log_streamreader(self, reader):

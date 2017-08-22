@@ -31,8 +31,7 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     if not os.path.exists(project_path):
         raise StopScheduler()
     await app.update_state(project_id, SwarmUI.Removing)
-    await app.run_command(
-        "docker-compose", "down", cwd="/data/%s" % project_id)
+    await app.run_compose("down", cwd="/data/%s" % project_id)
     if await app.is_last_pipeline(project_id):
         await remove_docker_images(app, project_id)
     rmtree(project_path)
@@ -85,8 +84,7 @@ async def do_action(app, project_id, args, pending_state, end_state):
     """
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
     await app.update_state(project_id, pending_state)
-    proc = await app.run_command("docker-compose", *args,
-                                 cwd="/data/%s" % project_id)
+    proc = await app.run_compose(*args, cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
@@ -99,8 +97,7 @@ async def up_action(app, project_id):
     """
     logger.info("Changing pipeline %s status to %s", project_id, SwarmUI.Up)
     await app.update_state(project_id, SwarmUI.Starting)
-    proc = await app.run_command("docker-compose", "up", "-d",
-                                 cwd="/data/%s" % project_id,
+    proc = await app.run_compose("up", "-d", cwd="/data/%s" % project_id,
                                  timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
@@ -114,8 +111,7 @@ async def restart_action(app, project_id):
     """
     logger.info("Restarting pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Restarting)
-    await app.run_command("docker-compose", "restart",
-                          cwd="/data/%s" % project_id)
+    await app.run_compose("restart", cwd="/data/%s" % project_id)
     await app.update_state(project_id, SwarmUI.Started)
 
 
@@ -134,15 +130,13 @@ async def update_action(app, project_id, pipeline):
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    proc = await app.run_command(
-        "docker-compose", "pull", cwd="/data/%s" % project_id)
+    proc = await app.run_compose("pull", cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
     await app.update_pipeline_services(pipeline)
-    proc = await app.run_command(
-        "docker-compose", "up", "-d", "--remove-orphans",
-        cwd="/data/%s" % project_id)
+    proc = await app.run_compose("up", "-d", "--remove-orphans",
+                                 cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
