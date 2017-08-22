@@ -44,11 +44,27 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.assertNotExists(s=pipeline_iri, p=SwarmUI.restartRequested)
 
+    async def update_action(self, pipeline_iri, pipeline_id):
+        old_services = await self.get_services(pipeline_id)
+        await self.insert_triples([
+            (pipeline_iri, SwarmUI.updateRequested, "true"),
+        ])
+        await self.scheduler_complete(pipeline_id)
+        new_services = await self.get_services(pipeline_id)
+        # NOTE: the services have been replaced so their UUID and their IRI
+        #       has changed but the name of the services remain the same
+        self.assertEqual(old_services.keys(), new_services.keys())
+        self.assertNotEqual(old_services.values(), new_services.values())
+        await self.assertStatus(pipeline_iri, SwarmUI.Up)
+        await self.assertNotExists(s=pipeline_iri, p=SwarmUI.updateRequested)
+        await self.assertExists(s=pipeline_iri, p=SwarmUI.services)
+
     @unittest_run_loop
     async def test_pipeline_actions(self):
         pipeline_iri, pipeline_id = await self.create_pipeline()
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up)
         await self.restart_action(pipeline_iri, pipeline_id)
+        await self.update_action(pipeline_iri, pipeline_id)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started)
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down)

@@ -119,6 +119,36 @@ async def restart_action(app, project_id):
     await app.update_state(project_id, SwarmUI.Started)
 
 
+async def update_action(app, project_id, pipeline):
+    """
+    Action triggered when swarmui:updateRequested has become true
+    """
+    logger.info("Updating pipeline %s", project_id)
+    await app.update_state(project_id, SwarmUI.Updating)
+    proc = await app.run_command("git", "fetch", cwd="/data/%s" % project_id)
+    if proc.returncode != 0:
+        await app.update_state(project_id, SwarmUI.Error)
+        return
+    proc = await app.run_command("git", "reset", "--hard", "origin/master",
+                                 cwd="/data/%s" % project_id)
+    if proc.returncode != 0:
+        await app.update_state(project_id, SwarmUI.Error)
+        return
+    proc = await app.run_command(
+        "docker-compose", "pull", cwd="/data/%s" % project_id)
+    if proc.returncode is not 0:
+        await app.update_state(project_id, SwarmUI.Error)
+        return
+    await app.update_pipeline_services(pipeline)
+    proc = await app.run_command(
+        "docker-compose", "up", "-d", "--remove-orphans",
+        cwd="/data/%s" % project_id)
+    if proc.returncode is not 0:
+        await app.update_state(project_id, SwarmUI.Error)
+    else:
+        await app.update_state(project_id, SwarmUI.Up)
+
+
 async def update(app, inserts, deletes):
     """
     Handler for the updates of the pipelines received by the Delta service
@@ -167,6 +197,17 @@ async def update(app, inserts, deletes):
                 await app.enqueue_action(
                     project_id, shutdown_and_cleanup_pipeline,
                     [app, project_id])
+
+            elif triple.p == SwarmUI.updateRequested:
+                assert isinstance(triple.o, Literal), \
+                    "wrong type: %r" % type(triple.o)
+                if not triple.o == "true":
+                    continue
+                project_id = await app.get_resource_id(subject)
+                await app.enqueue_action(
+                    project_id, app.reset_update_requested, [project_id])
+                await app.enqueue_action(
+                    project_id, update_action, [app, project_id, triple.s])
 
 
 async def get_existing_updates(sparql):

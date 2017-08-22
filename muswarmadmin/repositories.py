@@ -1,42 +1,13 @@
 import logging
 import os
-from aiosparql.syntax import IRI, Literal, Node, RDF, RDFTerm, Triples
+from aiosparql.syntax import IRI, Literal
 from shutil import rmtree
-from uuid import uuid4
 
 import muswarmadmin.pipelines
-from muswarmadmin.prefixes import Dct, Doap, Mu, SwarmUI
+from muswarmadmin.prefixes import Doap, SwarmUI
 
 
 logger = logging.getLogger(__name__)
-
-
-async def _insert_triples(app, project_id, pipeline):
-    """
-    Generate and insert the triples about the services of a Docker Compose
-    project (pipeline) inside the database
-    """
-    data = app.open_compose_data(project_id)
-    triples = Triples()
-    for service in data.services:
-        service_id = uuid4()
-        service_iri = RDFTerm(":%s" % service_id)
-        triples.append((pipeline, SwarmUI.services, service_iri))
-        triples.append(Node(service_iri, {
-            Mu.uuid: service_id,
-            Dct.title: service['name'],
-            SwarmUI.scaling: 0,
-            RDF.type: SwarmUI.Service,
-            SwarmUI.status: SwarmUI.Stopped,
-        }))
-    await app.sparql.update("""
-        PREFIX : {{services_iri}}
-
-        INSERT DATA {
-            GRAPH {{graph}} {
-                {{triples}}
-            }
-        }""", services_iri=(app.base_resource + "services/"), triples=triples)
 
 
 async def initialize_pipeline(app, pipeline, project_id, location, branch):
@@ -59,7 +30,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
             rmtree(project_path)
         return
     try:
-        await _insert_triples(app, project_id, pipeline)
+        await app.update_pipeline_services(pipeline)
     except Exception:
         rmtree(project_path)
         raise

@@ -7,14 +7,15 @@ import subprocess
 from aiohttp import web
 from aiohttp.client_exceptions import ClientConnectionError
 from aiosparql.client import SPARQLClient
-from aiosparql.syntax import escape_string, IRI
+from aiosparql.syntax import escape_string, IRI, Node, RDF, RDFTerm, Triples
 from compose import config
 from compose.config.environment import Environment
 from os import environ as ENV
+from uuid import uuid4
 
 from muswarmadmin import delta, eventmonitor, services
 from muswarmadmin.actionscheduler import ActionScheduler, OneActionScheduler
-from muswarmadmin.prefixes import SwarmUI
+from muswarmadmin.prefixes import Dct, Mu, SwarmUI
 
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,48 @@ class Application(web.Application):
             }
             """, uuid=escape_string(uuid), new_state=state)
 
+    async def update_pipeline_services(self, subject):
+        """
+        Generate and insert the triples of the services of a Docker Compose
+        project (pipeline) inside the database
+        """
+        project_id = await self.get_resource_id(subject)
+        data = self.open_compose_data(project_id)
+        triples = Triples()
+        for service in data.services:
+            service_id = uuid4()
+            service_iri = RDFTerm(":%s" % service_id)
+            triples.append((subject, SwarmUI.services, service_iri))
+            triples.append(Node(service_iri, {
+                Mu.uuid: service_id,
+                Dct.title: service['name'],
+                SwarmUI.scaling: 0,
+                RDF.type: SwarmUI.Service,
+                SwarmUI.status: SwarmUI.Stopped,
+            }))
+        await self.sparql.update("""
+            WITH {{graph}}
+            DELETE {
+                {{pipeline}} swarmui:services ?service .
+
+                ?service ?p ?o .
+            }
+            WHERE {
+                {{pipeline}} swarmui:services ?service .
+
+                ?service ?p ?o .
+            }
+            """, pipeline=subject)
+        await self.sparql.update("""
+            PREFIX : {{services_iri}}
+
+            INSERT DATA {
+                GRAPH {{graph}} {
+                    {{triples}}
+                }
+            }""", services_iri=(self.base_resource + "services/"),
+            triples=triples)
+
     async def reset_status_requested(self, uuid):
         """
         Helper that removes any swarmui:requestedStatus triple of a node
@@ -251,6 +294,22 @@ class Application(web.Application):
             WHERE {
                 ?s mu:uuid {{uuid}} ;
                   swarmui:deleteRequested ?oldvalue .
+            }
+            """, uuid=escape_string(uuid))
+
+    async def reset_update_requested(self, uuid):
+        """
+        Helper that removes any swarmui:updateRequested triple of a node
+        given in parameter
+        """
+        await self.sparql.update("""
+            WITH {{graph}}
+            DELETE {
+                ?s swarmui:updateRequested ?oldvalue .
+            }
+            WHERE {
+                ?s mu:uuid {{uuid}} ;
+                  swarmui:updateRequested ?oldvalue .
             }
             """, uuid=escape_string(uuid))
 
