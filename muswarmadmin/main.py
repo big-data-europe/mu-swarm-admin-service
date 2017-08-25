@@ -249,69 +249,20 @@ class Application(web.Application):
             }""", services_iri=(self.base_resource + "services/"),
             triples=triples)
 
-    async def reset_status_requested(self, uuid):
+    async def remove_triple(self, uuid, predicate):
         """
-        Helper that removes any swarmui:requestedStatus triple of a node
-        given in parameter
-        """
-        await self.sparql.update("""
-            WITH {{graph}}
-            DELETE {
-                ?s swarmui:requestedStatus ?oldvalue .
-            }
-            WHERE {
-                ?s mu:uuid {{uuid}} ;
-                  swarmui:requestedStatus ?oldvalue .
-            }
-            """, uuid=escape_string(uuid))
-
-    async def reset_restart_requested(self, uuid):
-        """
-        Helper that removes any swarmui:restartRequested triple of a node
-        given in parameter
+        Helper that removes a triple of a node identified by its mu:uuid
         """
         await self.sparql.update("""
             WITH {{graph}}
             DELETE {
-                ?s swarmui:restartRequested ?oldvalue .
+                ?s {{predicate}} ?oldvalue .
             }
             WHERE {
                 ?s mu:uuid {{uuid}} ;
-                  swarmui:restartRequested ?oldvalue .
+                  {{predicate}} ?oldvalue .
             }
-            """, uuid=escape_string(uuid))
-
-    async def reset_delete_requested(self, uuid):
-        """
-        Helper that removes any swarmui:deleteRequested triple of a node
-        given in parameter
-        """
-        await self.sparql.update("""
-            WITH {{graph}}
-            DELETE {
-                ?s swarmui:deleteRequested ?oldvalue .
-            }
-            WHERE {
-                ?s mu:uuid {{uuid}} ;
-                  swarmui:deleteRequested ?oldvalue .
-            }
-            """, uuid=escape_string(uuid))
-
-    async def reset_update_requested(self, uuid):
-        """
-        Helper that removes any swarmui:updateRequested triple of a node
-        given in parameter
-        """
-        await self.sparql.update("""
-            WITH {{graph}}
-            DELETE {
-                ?s swarmui:updateRequested ?oldvalue .
-            }
-            WHERE {
-                ?s mu:uuid {{uuid}} ;
-                  swarmui:updateRequested ?oldvalue .
-            }
-            """, uuid=escape_string(uuid))
+            """, uuid=escape_string(uuid), predicate=predicate)
 
     async def get_dct_title(self, uuid):
         """

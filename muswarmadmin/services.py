@@ -79,13 +79,15 @@ async def update(app, inserts, deletes):
     logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
+
             if triple.p == SwarmUI.requestedStatus:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
                 await app.enqueue_action(
-                    project_id, app.reset_status_requested, [service_id])
+                    project_id, app.remove_triple,
+                    [service_id, SwarmUI.requestedStatus])
                 if triple.o == SwarmUI.Up:
                     await app.enqueue_action(project_id, up_action,
                                              [app, project_id, service_id])
@@ -98,6 +100,7 @@ async def update(app, inserts, deletes):
                 else:
                     logger.error("Requested status not implemented: %s",
                                  triple.o.value)
+
             elif triple.p == SwarmUI.restartRequested:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
@@ -106,9 +109,11 @@ async def update(app, inserts, deletes):
                 service_id = await app.get_resource_id(subject)
                 project_id = await app.get_service_pipeline(service_id)
                 await app.enqueue_action(
-                    project_id, app.reset_restart_requested, [service_id])
+                    project_id, app.remove_triple,
+                    [service_id, SwarmUI.restartRequested])
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id, service_id])
+
             elif triple.p == SwarmUI.requestedScaling:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)

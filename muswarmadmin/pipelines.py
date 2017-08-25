@@ -162,7 +162,8 @@ async def update(app, inserts, deletes):
                     "wrong type: %r" % type(triple.o)
                 project_id = await app.get_resource_id(subject)
                 await app.enqueue_action(
-                    project_id, app.reset_status_requested, [project_id])
+                    project_id, app.remove_triple,
+                    [project_id, SwarmUI.requestedStatus])
                 if triple.o == SwarmUI.Up:
                     await app.enqueue_action(project_id, up_action,
                                              [app, project_id])
@@ -182,7 +183,8 @@ async def update(app, inserts, deletes):
                     continue
                 project_id = await app.get_resource_id(subject)
                 await app.enqueue_action(
-                    project_id, app.reset_restart_requested, [project_id])
+                    project_id, app.remove_triple,
+                    [project_id, SwarmUI.restartRequested])
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id])
 
@@ -193,7 +195,8 @@ async def update(app, inserts, deletes):
                     continue
                 project_id = await app.get_resource_id(subject)
                 await app.enqueue_action(
-                    project_id, app.reset_delete_requested, [project_id])
+                    project_id, app.remove_triple,
+                    [project_id, SwarmUI.deleteRequested])
                 await app.enqueue_action(
                     project_id, shutdown_and_cleanup_pipeline,
                     [app, project_id])
@@ -205,7 +208,8 @@ async def update(app, inserts, deletes):
                     continue
                 project_id = await app.get_resource_id(subject)
                 await app.enqueue_action(
-                    project_id, app.reset_update_requested, [project_id])
+                    project_id, app.remove_triple,
+                    [project_id, SwarmUI.updateRequested])
                 await app.enqueue_action(
                     project_id, update_action, [app, project_id, triple.s])
 
