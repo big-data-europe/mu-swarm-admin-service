@@ -27,6 +27,7 @@ class SwarmUI(Namespace):
     Up = PrefixedName
     Updating = PrefixedName
     branch = PrefixedName
+    composeYaml = PrefixedName
     deleteRequested = PrefixedName
     pipelines = PrefixedName
     requestedScaling = PrefixedName

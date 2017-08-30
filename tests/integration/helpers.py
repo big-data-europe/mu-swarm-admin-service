@@ -10,6 +10,7 @@ from aiohttp.test_utils import (
 from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_any, IRI, Node, RDF, Triples
 from copy import copy
+from textwrap import dedent
 from os import environ as ENV
 from yarl import URL
 
@@ -75,6 +76,20 @@ class IntegrationTestCase(AioHTTPTestCase):
     example_repo = \
         "https://github.com/big-data-europe/mu-swarm-ui-testing.git"
     sparql_timeout = 5
+    compose_yaml = dedent("""\
+        version: "2"
+        services:
+
+          service1:
+            image: busybox
+            command: "sleep 60"
+            environment:
+              - PIPELINE_HOST=example.local
+
+          service2:
+            image: busybox
+            command: "sleep 60"
+        """)
 
     async def get_application(self):
         app = copy(muswarmadmin.main.app)
@@ -160,8 +175,8 @@ class IntegrationTestCase(AioHTTPTestCase):
         return (repository_iri, repository_id)
 
     async def create_pipeline(self, repository_iri=_sentinel,
-                              location=_sentinel):
-        if repository_iri is _sentinel:
+                              location=_sentinel, compose=False):
+        if repository_iri is _sentinel and not compose:
             repository_iri, repository_id = \
                 await self.create_repository(location=location)
         pipeline_id = self.uuid4()
@@ -170,10 +185,13 @@ class IntegrationTestCase(AioHTTPTestCase):
             RDF.type: SwarmUI.Pipeline,
             Mu.uuid: pipeline_id,
         })
-        await self.insert_triples([
-            pipeline_node,
-            (repository_iri, SwarmUI.pipelines, pipeline_node),
-        ])
+        triples = [pipeline_node]
+        if not compose:
+            triples.append((repository_iri, SwarmUI.pipelines, pipeline_node))
+        else:
+            triples.append(
+                (pipeline_iri, SwarmUI.composeYaml, self.compose_yaml))
+        await self.insert_triples(triples)
         await self.scheduler_complete(pipeline_id)
         return (pipeline_iri, pipeline_id)
 
