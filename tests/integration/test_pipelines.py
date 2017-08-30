@@ -53,8 +53,9 @@ class PipelinesTestCase(IntegrationTestCase):
         new_services = await self.get_services(pipeline_id)
         # NOTE: the services have been replaced so their UUID and their IRI
         #       has changed but the name of the services remain the same
-        self.assertEqual(old_services.keys(), new_services.keys())
-        self.assertNotEqual(old_services.values(), new_services.values())
+        self.assertEqual(set(old_services.keys()), set(new_services.keys()))
+        self.assertNotEqual(set(old_services.values()),
+                            set(new_services.values()))
         await self.assertStatus(pipeline_iri, SwarmUI.Up)
         await self.assertNotExists(s=pipeline_iri, p=SwarmUI.updateRequested)
         await self.assertExists(s=pipeline_iri, p=SwarmUI.services)
