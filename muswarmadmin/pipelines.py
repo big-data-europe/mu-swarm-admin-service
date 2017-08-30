@@ -121,22 +121,25 @@ async def update_action(app, project_id, pipeline):
     """
     logger.info("Updating pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Updating)
-    proc = await app.run_command("git", "fetch", cwd="/data/%s" % project_id)
+    project_path = "/data/%s" % project_id
+    proc = await app.run_command("git", "fetch", cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
     proc = await app.run_command("git", "reset", "--hard", "origin/master",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    proc = await app.run_compose("pull", cwd="/data/%s" % project_id)
+    await app.update_pipeline_services(pipeline)
+    proc = await app.run_compose("pull", cwd=project_path,
+                                 timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    await app.update_pipeline_services(pipeline)
     proc = await app.run_compose("up", "-d", "--remove-orphans",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path,
+                                 timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
