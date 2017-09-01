@@ -29,6 +29,12 @@ class SwarmUI(Namespace):
     branch = PrefixedName
     composeYaml = PrefixedName
     deleteRequested = PrefixedName
+    fileContent = PrefixedName
+    fileHierarchy = PrefixedName
+    fileName = PrefixedName
+    files = PrefixedName
+    isDirectory = PrefixedName
+    isFile = PrefixedName
     pipelines = PrefixedName
     requestedScaling = PrefixedName
     requestedStatus = PrefixedName

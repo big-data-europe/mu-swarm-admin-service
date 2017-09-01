@@ -89,7 +89,7 @@ class PipelinesTestCase(IntegrationTestCase):
         self.assertTrue(await self.app.is_last_pipeline(pipeline2_id))
 
     async def _to_remove__create_pipeline_with_compose_yaml(self):
-        from aiosparql.syntax import Node, RDF
+        from aiosparql.syntax import IRI, Node, RDF, Triples
         from muswarmadmin.prefixes import Mu, SwarmUI
         pipeline_id = self.uuid4()
         pipeline_iri = self.resource("pipeline-instances", pipeline_id)
@@ -97,9 +97,11 @@ class PipelinesTestCase(IntegrationTestCase):
             RDF.type: SwarmUI.Pipeline,
             Mu.uuid: pipeline_id,
             SwarmUI.composeYaml: self.compose_yaml,
+            SwarmUI.fileHierarchy: IRI("http://file1"),
         })
+        triples = Triples([pipeline_node, self.file_hierarchy])
         await self.db.update(
-            "INSERT DATA { GRAPH {{graph}} { {{}} } }", pipeline_node)
+            "INSERT DATA { GRAPH {{graph}} { {{}} } }", triples)
         res = await self.db.query("""
             SELECT ?s ?p ?o
             FROM {{graph}}
@@ -132,6 +134,11 @@ class PipelinesTestCase(IntegrationTestCase):
         self.assertTrue(self.project_exists(pipeline_id))
         self.assertEqual(result[pipeline_iri][SwarmUI.status][0]['value'],
                          SwarmUI.Down)
+        self.assertFileHierarchy([
+                ("/data/%s/file2/file3" % pipeline_id, b"Hello World"),
+                ("/data/%s/file2/file4" % pipeline_id, b"Hello World"),
+                ("/data/%s/file5" % pipeline_id, b"Hello World"),
+            ])
 
     @unittest_run_loop
     async def test_docker_compose_yaml_update(self):
@@ -144,6 +151,9 @@ class PipelinesTestCase(IntegrationTestCase):
         compose_path = "/data/%s/docker-compose.yml" % pipeline_id
         old_services = await self.get_services(pipeline_id)
         old_mtime = os.stat(compose_path).st_mtime
+        os.remove("/data/%s/file2/file3" % pipeline_id)
+        os.remove("/data/%s/file2/file4" % pipeline_id)
+        os.remove("/data/%s/file5" % pipeline_id)
         await self.insert_triples([
             (pipeline_iri, SwarmUI.updateRequested, "true"),
         ])
@@ -159,3 +169,8 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.assertNotExists(s=pipeline_iri, p=SwarmUI.updateRequested)
         await self.assertExists(s=pipeline_iri, p=SwarmUI.services)
         self.assertNotEqual(old_mtime, new_mtime)
+        self.assertFileHierarchy([
+                ("/data/%s/file2/file3" % pipeline_id, b"Hello World"),
+                ("/data/%s/file2/file4" % pipeline_id, b"Hello World"),
+                ("/data/%s/file5" % pipeline_id, b"Hello World"),
+            ])

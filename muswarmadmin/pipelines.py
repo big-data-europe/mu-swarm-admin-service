@@ -6,6 +6,7 @@ from shutil import rmtree
 
 from muswarmadmin.prefixes import SwarmUI
 from muswarmadmin.actionscheduler import StopScheduler
+from muswarmadmin.filehierarchy import deploy_file_hierarchy
 
 
 logger = logging.getLogger(__name__)
@@ -176,7 +177,8 @@ async def update_action(app, project_id, pipeline):
     """
     Action triggered when swarmui:updateRequested has become true
     """
-    if os.path.exists("/data/%s/.git" % project_id):
+    project_path = "/data/%s" % project_id
+    if os.path.exists("%s/.git" % project_path):
         await update_action_git(app, project_id, pipeline)
     else:
         try:
@@ -186,7 +188,10 @@ async def update_action(app, project_id, pipeline):
                          "has a Docker Compose YAML inside the database",
                          project_id)
             return
+        rmtree(project_path)
+        os.mkdir(project_path)
         await update_action_yaml_in_database(app, project_id, pipeline, yaml)
+        await deploy_file_hierarchy(app.sparql, pipeline, project_path)
 
 
 async def initialize_from_yaml_in_database(app, project_id, pipeline, yaml):
@@ -201,6 +206,7 @@ async def initialize_from_yaml_in_database(app, project_id, pipeline, yaml):
     with open("%s/docker-compose.yml" % project_path, "w") as fh:
         fh.write(yaml)
     await app.update_pipeline_services(pipeline)
+    await deploy_file_hierarchy(app.sparql, pipeline, project_path)
     await app.update_state(project_id, SwarmUI.Down)
 
 

@@ -90,6 +90,29 @@ class IntegrationTestCase(AioHTTPTestCase):
             image: busybox
             command: "sleep 60"
         """)
+    file_hierarchy = Node(IRI("http://file1"), [
+            (SwarmUI.fileName, "file1"),
+            (SwarmUI.isDirectory, "true"),
+            (SwarmUI.files, Node(IRI("http://file2"), [
+                (SwarmUI.fileName, "file2"),
+                (SwarmUI.isDirectory, "true"),
+                (SwarmUI.files, Node(IRI("http://file3"), {
+                    SwarmUI.fileName: "file3",
+                    SwarmUI.isFile: "true",
+                    SwarmUI.fileContent: "SGVsbG8gV29ybGQ=",
+                })),
+                (SwarmUI.files, Node(IRI("http://file4"), {
+                    SwarmUI.fileName: "file4",
+                    SwarmUI.isFile: "true",
+                    SwarmUI.fileContent: "SGVsbG8gV29ybGQ=",
+                })),
+            ])),
+            (SwarmUI.files, Node(IRI("http://file5"), {
+                SwarmUI.fileName: "file5",
+                SwarmUI.isFile: "true",
+                SwarmUI.fileContent: "SGVsbG8gV29ybGQ=",
+            })),
+        ])
 
     async def get_application(self):
         app = copy(muswarmadmin.main.app)
@@ -189,8 +212,10 @@ class IntegrationTestCase(AioHTTPTestCase):
         if not compose:
             triples.append((repository_iri, SwarmUI.pipelines, pipeline_node))
         else:
-            triples.append(
-                (pipeline_iri, SwarmUI.composeYaml, self.compose_yaml))
+            triples.extend([
+                (pipeline_iri, SwarmUI.composeYaml, self.compose_yaml),
+                self.file_hierarchy,
+            ])
         await self.insert_triples(triples)
         await self.scheduler_complete(pipeline_id)
         return (pipeline_iri, pipeline_id)
@@ -270,3 +295,10 @@ class IntegrationTestCase(AioHTTPTestCase):
 
     async def assertNotExists(self, s=None, p=None, o=None):
         self.assertFalse(await self.triple_exists(s, p, o))
+
+    def assertFileHierarchy(self, files):
+        for filepath, expected_content in files:
+            self.assertTrue(os.path.exists(filepath), filepath)
+            with open(filepath, 'rb') as fh:
+                actual_content = fh.read()
+            self.assertEqual(expected_content, actual_content)
