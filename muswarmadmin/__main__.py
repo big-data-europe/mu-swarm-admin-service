@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
 
 try:
-    payload = {'query': 'select distinct ?Concept where {[] a ?Concept} LIMIT 1'}
+    payload = {'query': 'select distinct ?c where {[] a ?c } LIMIT 1'}
     url = ENV['MU_SPARQL_ENDPOINT']
     getout = False
     while not getout:
