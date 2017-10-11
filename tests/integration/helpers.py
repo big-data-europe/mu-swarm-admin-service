@@ -153,7 +153,7 @@ class IntegrationTestCase(AioHTTPTestCase):
         repository_id = self.uuid4()
         repository_iri = self.resource("repositories", repository_id)
         await self.insert_node(Node(repository_iri, {
-            RDF.type: Doap.GitRepository,
+            RDF.type: Doap.Stack,
             Mu.uuid: repository_id,
             Doap.location: location,
         }))
