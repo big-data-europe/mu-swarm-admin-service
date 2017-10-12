@@ -4,10 +4,6 @@ from itertools import groupby
 
 from muswarmadmin import pipelines, repositories, services
 
-import logging
-logger = logging.getLogger(__name__)
-
-
 class Triple:
     """
     A triple: subject (s), predicate (p) and object (o)
@@ -127,7 +123,6 @@ async def update(request):
     except StopIteration:
         raise web.HTTPNoContent()
 
-    logger.info(first_data)
     await repositories.update(
         request.app,
         *filter_updates(
