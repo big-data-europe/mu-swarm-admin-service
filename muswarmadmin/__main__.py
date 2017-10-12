@@ -15,6 +15,8 @@ def pollAccumulate(count=0):
     """
     Poll the database until it is ready to answer queries
     """
+    if count >= int(ENV['POLL_RETRIES']):
+        return False
     payload = {'query': 'select distinct ?c where {[] a ?c } LIMIT 1'}
     url = ENV['MU_SPARQL_ENDPOINT']
     try:
@@ -22,16 +24,14 @@ def pollAccumulate(count=0):
     except requests.RequestException:
         logger.warn('SPARQL endpoint not yet ready')
         sleep(1)
-        if count >= 10:
-            return False
-        else:
-            return pollAccumulate(count+1)
+        return pollAccumulate(count+1)
     logger.info('SPARQL endpoint is ready')
     return True
 
+if not pollAccumulate():
+    exit(1)
+
 try:
-    while not pollAccumulate():
-        continue
     web.run_app(app, port=(int(ENV['PORT']) if 'PORT' in ENV else None),
                 loop=loop)
 except (SystemExit, Exception):

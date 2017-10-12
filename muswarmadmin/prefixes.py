@@ -1,7 +1,7 @@
 from aiosparql.syntax import IRI, Namespace, PrefixedName
 
 __all__ = """
-    SwarmUI Mu Ext Dct Doap W3Vocab Foaf Auth Session
+    SwarmUI Mu Ext Dct Doap W3Vocab Foaf Auth Session Stackbuilder
     """.split()
 
 
@@ -16,7 +16,7 @@ class SwarmUI(Namespace):
     Pipeline = PrefixedName
     Removed = PrefixedName
     Removing = PrefixedName
-    Repository = PrefixedName
+    Stack = PrefixedName
     Restarting = PrefixedName
     Scaling = PrefixedName
     Service = PrefixedName
@@ -75,3 +75,9 @@ class Session(Namespace):
 
 class W3Vocab(Namespace):
     __iri__ = IRI("https://www.w3.org/1999/xhtml/vocab#")
+
+
+class Stackbuilder(Namespace):
+    __iri__ = IRI("http://stackbuilder.semte.ch/vocabularies/core/")
+
+    text = PrefixedName
