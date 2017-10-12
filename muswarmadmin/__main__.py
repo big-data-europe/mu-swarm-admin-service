@@ -1,11 +1,11 @@
+import requests
+import logging
+import asyncio
+
 from aiohttp import web
 from os import environ as ENV
 from muswarmadmin.main import app
 from time import sleep
-
-import requests
-import logging
-import asyncio
 
 logger = logging.getLogger(__name__)
 loop = asyncio.get_event_loop()
@@ -21,13 +21,13 @@ def pollAccumulate(count=0):
         r = requests.get(url, params=payload)
     except requests.RequestException:
         logger.warn('SPARQL endpoint not yet ready')
-        sleep(2)
-        if count == 10:
+        sleep(1)
+        if count >= 10:
             return False
         else:
             return pollAccumulate(count+1)
-    logger.info('SPARQL endpoint is ready')        
-    return True 
+    logger.info('SPARQL endpoint is ready')
+    return True
 
 try:
     while not pollAccumulate():
