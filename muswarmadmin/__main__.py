@@ -1,3 +1,6 @@
+raise Exception('bla')
+
+
 from aiohttp import web
 from os import environ as ENV
 from muswarmadmin.main import app
@@ -21,13 +24,13 @@ def pollAccumulate(count=0):
         r = requests.get(url, params=payload)
     except requests.RequestException:
         logger.warn('SPARQL endpoint not yet ready')
-        sleep(2)
-        if count == 10:
+        sleep(1)
+        if count >= 10:
             return False
         else:
             return pollAccumulate(count+1)
-    logger.info('SPARQL endpoint is ready')        
-    return True 
+    logger.info('SPARQL endpoint is ready')
+    return True
 
 try:
     while not pollAccumulate():
