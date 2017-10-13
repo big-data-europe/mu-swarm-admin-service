@@ -16,7 +16,7 @@ from yarl import URL
 import muswarmadmin.delta
 import muswarmadmin.main
 from muswarmadmin.actionscheduler import ActionScheduler
-from muswarmadmin.prefixes import Doap, Mu, SwarmUI
+from muswarmadmin.prefixes import Doap, Mu, SwarmUI, Stackbuilder, Dct
 
 __all__ = ['IntegrationTestCase', 'unittest_run_loop']
 
@@ -151,12 +151,44 @@ class IntegrationTestCase(AioHTTPTestCase):
         if location is _sentinel:
             location = self.example_repo
         repository_id = self.uuid4()
-        repository_iri = self.resource("repositories", repository_id)
+        repository_iri = self.resource("stacks", repository_id)
         await self.insert_node(Node(repository_iri, {
-            RDF.type: Doap.GitRepository,
+            RDF.type: Doap.Stack,
             Mu.uuid: repository_id,
             Doap.location: location,
         }))
+
+        drc_id = self.uuid4()
+        drc_text = """
+            version: \"2\"
+            services:
+
+              service1:
+                image: busybox
+                command: \"sleep 60\"
+
+              service2:
+                image: busybox
+                command: \"sleep 60\"
+        """
+        d_iri = IRI("http://stack-builder.big-data-europe.eu/resources/"
+        drc_iri = d_iri + "%s/%s" % ("docker-composes", drc_id)
+        drc_title = "stack_{}_drc_{}".format(repository_id, drc_id)
+        drc_node = Node(drc_iri, {
+            RDF.type: Stackbuilder.DockerCompose,
+            Mu.uuid: drc_id,
+            Dct.title: drc_title,
+            Stackbuilder.text: drc_text
+        })
+
+        await self.insert_triples([
+            drc_node
+        ])
+
+        await self.insert_triples([
+            (repository_iri, SwarmUI.dockerComposeFile, drc_node)
+        ])
+
         return (repository_iri, repository_id)
 
     async def create_pipeline(self, repository_iri=_sentinel,
@@ -174,7 +206,6 @@ class IntegrationTestCase(AioHTTPTestCase):
             pipeline_node,
             (repository_iri, SwarmUI.pipelines, pipeline_node),
         ])
-        await self.scheduler_complete(pipeline_id)
         return (pipeline_iri, pipeline_id)
 
     async def get_services(self, project_name):

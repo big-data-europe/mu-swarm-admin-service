@@ -294,7 +294,7 @@ class Application(web.Application):
                 ?pipeline a swarmui:Pipeline ;
                   mu:uuid {{uuid}} .
 
-                ?repository a doap:GitRepository ;
+                ?repository a doap:Stack ;
                   swarmui:pipelines ?pipeline ;
                   swarmui:pipelines ?otherpipeline .
 
@@ -505,6 +505,24 @@ class Application(web.Application):
             service_name=escape_string(service_name))
         if await self.join_public_network(container_id):
             await self.enqueue_one_action("proxy", self.restart_proxy, [])
+
+    async def get_repository_drc(app, pipeline):
+        """
+        Get DockerCompose file associated with a given Pipeline.
+        """
+        result = await app.sparql.query("""
+            SELECT DISTINCT ?drctext
+            WHERE {
+             ?repository ?p <{{pipeline}}> .
+             ?repository swarmui:dockerComposeFile ?drc .
+             ?drc stackbuilder:text ?drctext .
+            }
+        """, pipeline)
+        if not result['results']['bindings'] or \
+                not result['results']['bindings'][0]:
+            logger.debug("Pipeline %s has no repository", pipeline)
+            return
+        return result
 
     async def event_container_died(self, project_id, service_name,
                                    container_number):

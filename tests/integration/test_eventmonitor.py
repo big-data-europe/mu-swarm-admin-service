@@ -12,12 +12,12 @@ class BaseEventMonitorTestCase(IntegrationTestCase):
     async def prepare_database(self):
         await super().prepare_database()
         repository_id = self.uuid4()
-        repository_iri = self.resource("repositories", repository_id)
+        repository_iri = self.resource("stacks", repository_id)
         pipeline_id = self.uuid4()
         pipeline_iri = self.resource("pipeline-instances", pipeline_id)
         await self.prepare_node(
             Node(repository_iri, {
-                RDF.type: Doap.GitRepository,
+                RDF.type: Doap.Stack,
                 Mu.uuid: repository_id,
                 Doap.location: self.example_repo,
                 SwarmUI.pipelines: Node(pipeline_iri, [

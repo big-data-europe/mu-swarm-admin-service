@@ -20,15 +20,25 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     if os.path.exists(project_path):
         logger.error("Pipeline at %s already exists", project_path)
         return
+
     await app.update_state(project_id, SwarmUI.Initializing)
-    proc = await app.run_command(
-        "git", "clone", location, "-b", (branch or "master"), project_id,
-        cwd="/data")
-    if proc.returncode != 0:
-        logger.error("Failed to clone repository at %s", location)
-        if os.path.exists(project_path):
-            rmtree(project_path)
-        return
+
+    if await repository_has_location(app, pipeline=pipeline):
+        proc = await app.run_command(
+            "git", "clone", location, "-b", (branch or "master"), project_id,
+            cwd="/data")
+        if proc.returncode != 0:
+            logger.error("Failed to clone repository at %s", location)
+            if os.path.exists(project_path):
+                rmtree(project_path)
+            return
+    else:
+        os.makedirs(project_path)
+
+    repository_drc = await get_repository_drc(app, pipeline=pipeline)
+    with open(os.path.join(project_path, "docker-compose.yml"), "w") as df:
+        df.write(repository_drc)
+
     try:
         await app.update_pipeline_services(pipeline)
     except Exception:
@@ -36,6 +46,40 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
         raise
     else:
         await app.update_state(project_id, SwarmUI.Down)
+
+
+async def repository_has_location(app, pipeline):
+    """
+    Check if the repository associated with the pipeline
+    has a location (git url).
+    """
+    result = await app.sparql.query("""
+        ASK
+        FROM {{graph}}
+        WHERE {
+         ?repository ?p {{pipeline}} .
+         ?repository doap:location ?location .
+        }
+    """, pipeline=pipeline)
+    return result['boolean']
+
+
+async def get_repository_drc(app, pipeline):
+    """
+    Get DockerCompose file associated with a given Pipeline.
+    """
+    result = await app.sparql.query("""
+        SELECT DISTINCT ?drctext
+        WHERE {
+         ?repository ?p {{pipeline}} .
+         ?repository swarmui:dockerComposeFile ?drc .
+         ?drc stackbuilder:text ?drctext .
+        }
+    """, pipeline=pipeline)
+    if not result['results']['bindings'] or \
+            not result['results']['bindings'][0]:
+        raise KeyError("pipeline %r not found" % pipeline)
+    return result['results']['bindings'][0]['drctext']['value']
 
 
 async def remove_repository(app, repository):
@@ -98,14 +142,6 @@ async def update(app, inserts, deletes):
                 branch = info.get(SwarmUI.branch, [{'value': ''}])[0]['value']
                 repository_id = await app.get_resource_id(subject)
                 project_id = await app.get_resource_id(triple.o)
-                if not location:
-                    logger.error("Pipeline %s: can not clone repository %s, "
-                                 "location not specified",
-                                 project_id, repository_id)
-                    await app.enqueue_action(
-                        project_id, app.update_state,
-                        [project_id, SwarmUI.Error])
-                    continue
                 await app.enqueue_action(project_id, initialize_pipeline, [
                     app, triple.o, project_id, location, branch,
                 ])
@@ -127,7 +163,7 @@ async def get_existing_updates(sparql):
         FROM {{graph}}
         WHERE
         {
-            ?s a doap:GitRepository ;
+            ?s a doap:Stack ;
               swarmui:pipelines ?o .
             ?o a swarmui:Pipeline .
             FILTER (NOT EXISTS {?o swarmui:status ?status})
