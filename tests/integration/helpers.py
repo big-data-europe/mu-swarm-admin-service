@@ -171,7 +171,8 @@ class IntegrationTestCase(AioHTTPTestCase):
                 image: busybox
                 command: \"sleep 60\"
         """
-        drc_iri = IRI("http://stack-builder.big-data-europe.eu/resources/docker-composes/{}".format(drc_id))
+        d_iri = IRI("http://stack-builder.big-data-europe.eu/resources/"
+        drc_iri = d_iri + "%s/%s" % ("docker-composes", drc_id)
         drc_title = "stack_{}_drc_{}".format(repository_id, drc_id)
         drc_node = Node(drc_iri, {
             RDF.type: Stackbuilder.DockerCompose,
@@ -205,13 +206,6 @@ class IntegrationTestCase(AioHTTPTestCase):
             pipeline_node,
             (repository_iri, SwarmUI.pipelines, pipeline_node),
         ])
-        pipeline_exists = await self.triple_exists(pipeline_iri, RDF.type, SwarmUI.Pipeline)
-        uuid_exists = await self.triple_exists(pipeline_iri, Mu.uuid, pipeline_id)
-        repo_link_exists = await self.triple_exists(repository_iri, SwarmUI.pipelines, pipeline_node)
-        await self.scheduler_complete(pipeline_id)
-        print("=============== Pipeline IRI, RDF.type, SwarmUI.Pipeline triple exists: {}".format(pipeline_exists))
-        print("=============== Pipeline IRI, Mu.uuid, pipeline_id triple exists: {}".format(uuid_exists))
-        print("=============== Pipeline Node & link to repository exists: {}".format(repo_link_exists))
         return (pipeline_iri, pipeline_id)
 
     async def get_services(self, project_name):
