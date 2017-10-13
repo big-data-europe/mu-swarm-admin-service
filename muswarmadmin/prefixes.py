@@ -36,6 +36,7 @@ class SwarmUI(Namespace):
     services = PrefixedName
     status = PrefixedName
     updateRequested = PrefixedName
+    dockerComposeFile = PrefixedName
 
 
 class Mu(Namespace):
@@ -81,3 +82,4 @@ class Stackbuilder(Namespace):
     __iri__ = IRI("http://stackbuilder.semte.ch/vocabularies/core/")
 
     text = PrefixedName
+    DockerCompose = PrefixedName

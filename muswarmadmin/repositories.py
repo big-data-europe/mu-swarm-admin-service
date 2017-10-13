@@ -36,7 +36,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
         os.makedirs(project_path)
 
     repository_drc = await get_repository_drc(app, pipeline=pipeline)
-    with open(os.path.join(project_path, "docker-compose.yml"), "w") as drc_file:
+    with open(os.path.join(project_path,"docker-compose.yml"), "w") as drc_file:
         drc_file.write(repository_drc)
 
     try:

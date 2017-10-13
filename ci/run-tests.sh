@@ -16,6 +16,7 @@ exec docker run -it --rm \
 	-e TOX=true \
 	-e MU_APPLICATION_GRAPH=http://mu.semte.ch/test \
 	-e MU_SPARQL_ENDPOINT=http://delta:8890/sparql \
+	-e POLL_RETRIES=15 \
 	-v $PWD:/src \
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	-l com.docker.compose.project=APPSWARMUI \

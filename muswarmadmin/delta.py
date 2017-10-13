@@ -4,6 +4,7 @@ from itertools import groupby
 
 from muswarmadmin import pipelines, repositories, services
 
+
 class Triple:
     """
     A triple: subject (s), predicate (p) and object (o)

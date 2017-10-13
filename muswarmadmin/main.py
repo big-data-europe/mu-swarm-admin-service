@@ -506,7 +506,6 @@ class Application(web.Application):
         if await self.join_public_network(container_id):
             await self.enqueue_one_action("proxy", self.restart_proxy, [])
 
-
     async def get_repository_drc(app, pipeline):
         """
         Get DockerCompose file associated with a given Pipeline.
@@ -521,7 +520,7 @@ class Application(web.Application):
         """, pipeline)
         if not result['results']['bindings'] or \
                 not result['results']['bindings'][0]:
-            logger.debug("No pipeline for repository %s", repository)
+            logger.debug("Pipeline %s has no repository", pipeline)
             return
         return result
 

@@ -20,13 +20,14 @@ def pollAccumulate(count=0):
     payload = {'query': 'select distinct ?c where {[] a ?c } LIMIT 1'}
     url = ENV['MU_SPARQL_ENDPOINT']
     try:
-        r = requests.get(url, params=payload)
+        requests.get(url, params=payload)
     except requests.RequestException:
         logger.warn('SPARQL endpoint not yet ready')
         sleep(1)
         return pollAccumulate(count+1)
     logger.info('SPARQL endpoint is ready')
     return True
+
 
 if not pollAccumulate():
     exit(1)
