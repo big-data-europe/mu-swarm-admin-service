@@ -71,7 +71,10 @@ class PipelinesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_is_last_pipeline(self):
+        print("==================== test_is_last_pipeline ====================")
         repository_iri, repository_id = await self.create_repository()
+        drc_iri, drc_id = \
+            await self.create_drc_node(repository_iri=repository_iri)
         pipeline1_iri, pipeline1_id = \
             await self.create_pipeline(repository_iri=repository_iri)
         self.assertTrue(await self.app.is_last_pipeline(pipeline1_id))

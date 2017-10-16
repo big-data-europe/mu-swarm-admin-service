@@ -21,6 +21,6 @@ docker run -d --name=muswarmadmin_test_delta \
 	-e SUBSCRIBERSFILE=/config/subscribers.json \
 	-v "$PWD"/delta:/config \
 	-p 8891:8890 \
-	semtech/mu-delta-service:beta-0.9
+	semtech/mu-delta-service:beta-0.10
 
 docker pull bde2020/mu-swarm-admin-service:latest

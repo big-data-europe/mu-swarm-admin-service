@@ -12,11 +12,13 @@ from aiosparql.syntax import escape_any, IRI, Node, RDF, Triples
 from copy import copy
 from os import environ as ENV
 from yarl import URL
+from textwrap import dedent
+
 
 import muswarmadmin.delta
 import muswarmadmin.main
 from muswarmadmin.actionscheduler import ActionScheduler
-from muswarmadmin.prefixes import Doap, Mu, SwarmUI
+from muswarmadmin.prefixes import Doap, Mu, SwarmUI, Stackbuilder, Dct
 
 __all__ = ['IntegrationTestCase', 'unittest_run_loop']
 
@@ -146,6 +148,41 @@ class IntegrationTestCase(AioHTTPTestCase):
     async def describe(self, subject):
         return await self.app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
                                            subject)
+
+    async def create_drc_node(self, repository_iri=_sentinel,
+                              location=_sentinel):
+        if repository_iri is _sentinel:
+            repository_iri, repository_id = \
+                await self.create_repository(location=location)
+        else:
+            s_repository_iri = str(repository_iri)
+            repository_id = s_repository_iri.split('/')[-1][:-1]
+        drc_text = dedent("""\
+            version: "2"
+            services:
+              service1:
+                image: busybox
+                command: "sleep 60"
+              service2:
+                image: busybox
+                command: "sleep 60"
+        """)
+        drc_id = self.uuid4()
+        d_iri = IRI("http://stack-builder.big-data-europe.eu/resources/")
+        drc_iri = d_iri + "%s/%s" % ("docker-composes", drc_id)
+        drc_title = "stack_{}_drc_{}".format(repository_id, drc_id)
+        drc_node = Node(drc_iri, {
+            RDF.type: Stackbuilder.DockerCompose,
+            Mu.uuid: drc_id,
+            Dct.title: drc_title,
+            Stackbuilder.text: drc_text
+        })
+
+        await self.insert_triples([
+            drc_node,
+            (repository_iri, SwarmUI.dockerComposeFile, drc_node),
+        ])
+        return (drc_iri, drc_id)
 
     async def create_repository(self, location=_sentinel):
         if location is _sentinel:
