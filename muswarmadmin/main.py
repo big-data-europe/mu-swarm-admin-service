@@ -294,7 +294,7 @@ class Application(web.Application):
                 ?pipeline a swarmui:Pipeline ;
                   mu:uuid {{uuid}} .
 
-                ?repository a doap:GitRepository ;
+                ?repository a doap:Stack ;
                   swarmui:pipelines ?pipeline ;
                   swarmui:pipelines ?otherpipeline .
 

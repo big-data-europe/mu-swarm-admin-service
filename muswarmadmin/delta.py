@@ -128,7 +128,7 @@ async def update(request):
         request.app,
         *filter_updates(
             first_data,
-            request.app.base_resource + "repositories/"))
+            request.app.base_resource + "stacks/"))
 
     await pipelines.update(
         request.app,

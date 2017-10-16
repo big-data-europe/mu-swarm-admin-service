@@ -28,6 +28,7 @@ class SwarmUI(Namespace):
     Updating = PrefixedName
     branch = PrefixedName
     deleteRequested = PrefixedName
+    dockerComposeFile = PrefixedName
     pipelines = PrefixedName
     requestedScaling = PrefixedName
     requestedStatus = PrefixedName
@@ -57,7 +58,7 @@ class Dct(Namespace):
 class Doap(Namespace):
     __iri__ = IRI("http://usefulinc.com/ns/doap#")
 
-    GitRepository = PrefixedName
+    Stack = PrefixedName
     location = PrefixedName
 
 
@@ -75,3 +76,10 @@ class Session(Namespace):
 
 class W3Vocab(Namespace):
     __iri__ = IRI("https://www.w3.org/1999/xhtml/vocab#")
+
+
+class Stackbuilder(Namespace):
+    __iri__ = IRI("http://stackbuilder.semte.ch/vocabularies/core/")
+
+    text = PrefixedName
+    DockerCompose = PrefixedName

@@ -127,7 +127,7 @@ async def get_existing_updates(sparql):
         FROM {{graph}}
         WHERE
         {
-            ?s a doap:GitRepository ;
+            ?s a doap:Stack ;
               swarmui:pipelines ?o .
             ?o a swarmui:Pipeline .
             FILTER (NOT EXISTS {?o swarmui:status ?status})
