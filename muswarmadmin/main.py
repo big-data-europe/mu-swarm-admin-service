@@ -264,6 +264,24 @@ class Application(web.Application):
             }
             """, uuid=escape_string(uuid), predicate=predicate)
 
+    async def get_compose_yaml(self, uuid):
+        """
+        Get the swarmui:composeYaml of a node
+        """
+        result = await self.sparql.query("""
+            SELECT ?compose
+            FROM {{graph}}
+            WHERE
+            {
+                ?s mu:uuid {{uuid}} ;
+                  swarmui:composeYaml ?compose .
+            }
+            """, uuid=escape_string(uuid))
+        if not result['results']['bindings'] or \
+                not result['results']['bindings'][0]:
+            raise KeyError("resource %r not found" % uuid)
+        return result['results']['bindings'][0]['compose']['value']
+
     async def get_dct_title(self, uuid):
         """
         Get the dct:title of a node

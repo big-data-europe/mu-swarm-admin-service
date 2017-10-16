@@ -115,32 +115,93 @@ async def restart_action(app, project_id):
     await app.update_state(project_id, SwarmUI.Started)
 
 
-async def update_action(app, project_id, pipeline):
+async def update_action_git(app, project_id, pipeline):
     """
-    Action triggered when swarmui:updateRequested has become true
+    Action triggered when swarmui:updateRequested has become true and the
+    pipeline is a Git repository
     """
-    logger.info("Updating pipeline %s", project_id)
+    logger.info("Updating Git repository pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Updating)
-    proc = await app.run_command("git", "fetch", cwd="/data/%s" % project_id)
+    project_path = "/data/%s" % project_id
+    proc = await app.run_command("git", "fetch", cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
     proc = await app.run_command("git", "reset", "--hard", "origin/master",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    proc = await app.run_compose("pull", cwd="/data/%s" % project_id)
+    await app.update_pipeline_services(pipeline)
+    proc = await app.run_compose("pull", cwd=project_path,
+                                 timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    await app.update_pipeline_services(pipeline)
     proc = await app.run_compose("up", "-d", "--remove-orphans",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path,
+                                 timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
         await app.update_state(project_id, SwarmUI.Up)
+
+
+async def update_action_yaml_in_database(app, project_id, pipeline, yaml):
+    """
+    Action triggered when swarmui:updateRequested has become true and the
+    pipeline has a Docker Compose YAML in the database
+    """
+    logger.info("Updating pipeline %s based on YAML in database", project_id)
+    await app.update_state(project_id, SwarmUI.Updating)
+    project_path = "/data/%s" % project_id
+    with open("%s/docker-compose.yml" % project_path, "w") as fh:
+        fh.write(yaml)
+    await app.update_pipeline_services(pipeline)
+    proc = await app.run_compose("pull", cwd=project_path,
+                                 timeout=app.compose_up_timeout)
+    if proc.returncode is not 0:
+        await app.update_state(project_id, SwarmUI.Error)
+        return
+    proc = await app.run_compose("up", "-d", "--remove-orphans",
+                                 cwd=project_path,
+                                 timeout=app.compose_up_timeout)
+    if proc.returncode is not 0:
+        await app.update_state(project_id, SwarmUI.Error)
+    else:
+        await app.update_state(project_id, SwarmUI.Up)
+
+
+async def update_action(app, project_id, pipeline):
+    """
+    Action triggered when swarmui:updateRequested has become true
+    """
+    if os.path.exists("/data/%s/.git" % project_id):
+        await update_action_git(app, project_id, pipeline)
+    else:
+        try:
+            yaml = await app.get_compose_yaml(project_id)
+        except KeyError:
+            logger.error("The pipeline %s is neither a Git repository or a "
+                         "has a Docker Compose YAML inside the database",
+                         project_id)
+            return
+        await update_action_yaml_in_database(app, project_id, pipeline, yaml)
+
+
+async def initialize_from_yaml_in_database(app, project_id, pipeline, yaml):
+    project_path = "/data/%s" % project_id
+    if os.path.exists(project_path):
+        logger.error("Pipeline at %s already exists", project_path)
+        return
+    logger.info("Initializing pipeline %s from Docker Compose YAML provided "
+                "by the database", project_id)
+    await app.update_state(project_id, SwarmUI.Initializing)
+    os.mkdir(project_path)
+    with open("%s/docker-compose.yml" % project_path, "w") as fh:
+        fh.write(yaml)
+    await app.update_pipeline_services(pipeline)
+    await app.update_state(project_id, SwarmUI.Down)
 
 
 async def update(app, inserts, deletes):
@@ -206,6 +267,14 @@ async def update(app, inserts, deletes):
                     [project_id, SwarmUI.updateRequested])
                 await app.enqueue_action(
                     project_id, update_action, [app, project_id, triple.s])
+
+            elif triple.p == SwarmUI.composeYaml:
+                assert isinstance(triple.o, Literal), \
+                    "wrong type: %r" % type(triple.o)
+                project_id = await app.get_resource_id(subject)
+                await app.enqueue_action(
+                    project_id, initialize_from_yaml_in_database,
+                    [app, project_id, triple.s, triple.o.value])
 
 
 async def get_existing_updates(sparql):
