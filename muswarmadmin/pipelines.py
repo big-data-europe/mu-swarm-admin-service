@@ -155,6 +155,8 @@ async def update_action(app, project_id, pipeline):
         print("--------------------- drc up done successfully")
         await app.update_state(project_id, SwarmUI.Up)
         # If I print the status here, it is Up
+        result = await describe(app, pipeline)
+        print(result) # will print Started O_o
 
 
 
