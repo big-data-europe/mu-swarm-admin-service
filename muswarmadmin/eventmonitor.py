@@ -52,6 +52,7 @@ async def startup(app):
             running_services[(project_name, service_name)] = max(
                 running_services.get((project_name, service_name), 0),
                 container_number)
+
     result = await app.sparql.query(
         """
         SELECT *

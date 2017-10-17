@@ -1,4 +1,5 @@
 from muswarmadmin.prefixes import SwarmUI
+
 from tests.integration.helpers import IntegrationTestCase, unittest_run_loop
 
 

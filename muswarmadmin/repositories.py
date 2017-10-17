@@ -2,6 +2,7 @@ import logging
 import os
 from aiosparql.syntax import IRI, Literal
 from shutil import rmtree
+
 import muswarmadmin.pipelines
 from muswarmadmin.prefixes import Doap, SwarmUI
 
