@@ -139,8 +139,8 @@ async def update_action(app, project_id, pipeline):
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
-    else:
-        await app.update_state(project_id, SwarmUI.Up)
+    # NOTE: change of status to UP removed. Instead, it is expected
+    # to be chaned by container events.
 
 
 async def update(app, inserts, deletes):

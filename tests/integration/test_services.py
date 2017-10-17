@@ -32,7 +32,11 @@ class ServicesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_actions(self):
-        pipeline_iri, pipeline_id = await self.create_pipeline()
+        repository_iri, repository_id = await self.create_repository()
+        drc_iri, drc_id = \
+            await self.create_drc_node(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         services = await self.get_services(pipeline_id)
         await self.insert_triples([
             (pipeline_iri, SwarmUI.requestedStatus, SwarmUI.Up),
@@ -61,7 +65,11 @@ class ServicesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_manual_actions(self):
-        pipeline_iri, pipeline_id = await self.create_pipeline()
+        repository_iri, repository_id = await self.create_repository()
+        drc_iri, drc_id = \
+            await self.create_drc_node(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         await self.insert_triples([
             (pipeline_iri, SwarmUI.requestedStatus, SwarmUI.Up),
         ])
@@ -77,7 +85,11 @@ class ServicesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_up_action(self):
-        pipeline_iri, pipeline_id = await self.create_pipeline()
+        repository_iri, repository_id = await self.create_repository()
+        drc_iri, drc_id = \
+            await self.create_drc_node(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         services = await self.get_services(pipeline_id)
         service_iri, service_id = services["service1"]
         await self.insert_triples([
@@ -89,7 +101,11 @@ class ServicesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_logs(self):
-        pipeline_iri, pipeline_id = await self.create_pipeline()
+        repository_iri, repository_id = await self.create_repository()
+        drc_iri, drc_id = \
+            await self.create_drc_node(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         services = await self.get_services(pipeline_id)
         service_iri, service_id = services["service1"]
         await self.insert_triples([
