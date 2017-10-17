@@ -54,10 +54,6 @@ class PipelinesTestCase(IntegrationTestCase):
             (pipeline_iri, SwarmUI.updateRequested, "true"),
         ])
         await self.scheduler_complete(pipeline_id)
-
-        result = await self.describe(pipeline_iri)
-        print(result) # will print Started O_o
-
         new_services = await self.get_services(pipeline_id)
         # NOTE: the services have been replaced so their UUID and their IRI
         #       has changed but the name of the services remain the same
@@ -65,7 +61,7 @@ class PipelinesTestCase(IntegrationTestCase):
         self.assertNotEqual(old_services.values(), new_services.values())
         await self.assertNotExists(s=pipeline_iri, p=SwarmUI.updateRequested)
         await self.assertExists(s=pipeline_iri, p=SwarmUI.services)
-        # await self.assertStatus(pipeline_iri, SwarmUI.Up)
+        await self.assertStatus(pipeline_iri, SwarmUI.Started)
 
     @unittest_run_loop
     async def test_pipeline_actions(self):
@@ -76,12 +72,12 @@ class PipelinesTestCase(IntegrationTestCase):
             await self.create_drc_node(repository_iri=repository_iri)
         pipeline_iri, pipeline_id = await self.create_pipeline(repository_iri=repository_iri)
 
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up) # UP
-        await self.restart_action(pipeline_iri, pipeline_id) # STARTED
-        await self.update_action(pipeline_iri, pipeline_id) # UP
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped) # STOPPED
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started) # STARTED
-        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down) # DOWN
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up)
+        await self.restart_action(pipeline_iri, pipeline_id)
+        await self.update_action(pipeline_iri, pipeline_id)
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Stopped)
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Started)
+        await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Down)
 
     @unittest_run_loop
     async def test_is_last_pipeline(self):

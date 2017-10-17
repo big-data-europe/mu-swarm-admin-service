@@ -115,49 +115,30 @@ async def restart_action(app, project_id):
     await app.update_state(project_id, SwarmUI.Started)
 
 
-async def describe(app, subject):
-    return await app.sparql.query("DESCRIBE {{}} FROM {{graph}}",
-                                       subject)
-
 async def update_action(app, project_id, pipeline):
     """
     Action triggered when swarmui:updateRequested has become true
     """
     logger.info("Updating pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Updating)
-    print("--------------------- Pipeline changed to Updating successfully")
     proc = await app.run_command("git", "fetch", cwd="/data/%s" % project_id)
-    print("--------------------- Git fetch done successfully")
     if proc.returncode != 0:
-        print("--------------------- Git fetch /data BOUM")
         await app.update_state(project_id, SwarmUI.Error)
         return
     proc = await app.run_command("git", "reset", "--hard", "origin/master",
                                  cwd="/data/%s" % project_id)
     if proc.returncode != 0:
-        print("--------------------- Git reset --hard /data BOUM")
         await app.update_state(project_id, SwarmUI.Error)
         return
-    print("--------------------- Git reset done successfully")
     proc = await app.run_compose("pull", cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
-        print("--------------------- Drc pull BOUM")
         await app.update_state(project_id, SwarmUI.Error)
         return
-    print("--------------------- Drc pull done successfully")
     await app.update_pipeline_services(pipeline)
     proc = await app.run_compose("up", "-d", "--remove-orphans",
                                  cwd="/data/%s" % project_id)
     if proc.returncode is not 0:
-        print("--------------------- Git drc up -d /data BOUM")
         await app.update_state(project_id, SwarmUI.Error)
-    else:
-        print("--------------------- drc up done successfully")
-        await app.update_state(project_id, SwarmUI.Up)
-        # If I print the status here, it is Up
-        result = await describe(app, pipeline)
-        print(result) # will print Started O_o
-
 
 
 async def update(app, inserts, deletes):
@@ -167,7 +148,6 @@ async def update(app, inserts, deletes):
     logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
-
             if triple.p == SwarmUI.requestedStatus:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)

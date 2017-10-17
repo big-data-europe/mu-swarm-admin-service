@@ -2,7 +2,6 @@ import logging
 import os
 from aiosparql.syntax import IRI, Literal
 from shutil import rmtree
-
 import muswarmadmin.pipelines
 from muswarmadmin.prefixes import Doap, SwarmUI
 
@@ -69,7 +68,8 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
         os.makedirs(project_path)
 
     repository_drc = await get_repository_drc(app, pipeline=pipeline)
-    with open(os.path.join(project_path, "docker-compose.yml"), "w") as df:
+    drc_path = os.path.join(project_path, "docker-compose.yml")
+    with open(drc_path, "w") as df:
         df.write(repository_drc)
 
     try:
