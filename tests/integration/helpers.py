@@ -165,7 +165,7 @@ class IntegrationTestCase(AioHTTPTestCase):
               service2:
                 image: busybox
                 command: "sleep 60"
-        """)
+            """)
         drc_id = self.uuid4()
         d_iri = IRI("http://stack-builder.big-data-europe.eu/resources/")
         drc_iri = d_iri + "%s/%s" % ("docker-composes", drc_id)
