@@ -11,14 +11,13 @@ from aiosparql.client import SPARQLClient
 from aiosparql.syntax import escape_any, IRI, Node, RDF, Triples
 from copy import copy
 from os import environ as ENV
-from yarl import URL
 from textwrap import dedent
-
+from yarl import URL
 
 import muswarmadmin.delta
 import muswarmadmin.main
 from muswarmadmin.actionscheduler import ActionScheduler
-from muswarmadmin.prefixes import Doap, Mu, SwarmUI, Stackbuilder, Dct
+from muswarmadmin.prefixes import Dct, Doap, Mu, Stackbuilder, SwarmUI
 
 __all__ = ['IntegrationTestCase', 'unittest_run_loop']
 

@@ -5,7 +5,6 @@ from shutil import rmtree
 import muswarmadmin.pipelines
 from muswarmadmin.prefixes import Doap, SwarmUI
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -18,10 +17,10 @@ async def repository_has_location(app, pipeline):
         ASK
         FROM {{graph}}
         WHERE {
-         ?repository ?p {{pipeline}} .
+         ?repository swarmui:pipelines {{pipeline}} .
          ?repository doap:location ?location .
         }
-    """, pipeline=pipeline)
+        """, pipeline=pipeline)
     return result['boolean']
 
 
@@ -32,11 +31,11 @@ async def get_repository_drc(app, pipeline):
     result = await app.sparql.query("""
         SELECT DISTINCT ?drctext
         WHERE {
-         ?repository ?p {{pipeline}} .
+         ?repository swarmui:pipelines {{pipeline}} .
          ?repository swarmui:dockerComposeFile ?drc .
          ?drc stackbuilder:text ?drctext .
         }
-    """, pipeline=pipeline)
+        """, pipeline=pipeline)
     if not result['results']['bindings'] or \
             not result['results']['bindings'][0]:
         raise KeyError("The pipeline %r does not have a drc" % pipeline)
