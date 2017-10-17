@@ -150,6 +150,7 @@ async def update(app, inserts, deletes):
     logger.debug("Receiving updates: inserts=%r deletes=%r", inserts, deletes)
     for subject, triples in inserts.items():
         for triple in triples:
+
             if triple.p == SwarmUI.requestedStatus:
                 assert isinstance(triple.o, IRI), \
                     "wrong type: %r" % type(triple.o)

@@ -50,7 +50,6 @@ class PipelinesTestCase(IntegrationTestCase):
 
     async def update_action(self, pipeline_iri, pipeline_id):
         old_services = await self.get_services(pipeline_id)
-        print("update_action the Pipeline to UP")
         await self.insert_triples([
             (pipeline_iri, SwarmUI.updateRequested, "true"),
         ])
