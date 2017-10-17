@@ -6,6 +6,7 @@ from shutil import rmtree
 import muswarmadmin.pipelines
 from muswarmadmin.prefixes import Doap, SwarmUI
 
+
 logger = logging.getLogger(__name__)
 
 
