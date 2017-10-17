@@ -39,7 +39,7 @@ async def get_repository_drc(app, pipeline):
     """, pipeline=pipeline)
     if not result['results']['bindings'] or \
             not result['results']['bindings'][0]:
-        raise KeyError("The pipeline %r with the associated repo does not have a drc" % pipeline)
+        raise KeyError("The pipeline %r does not have a drc" % pipeline)
     return result['results']['bindings'][0]['drctext']['value']
 
 

@@ -8,7 +8,8 @@ class PipelinesTestCase(IntegrationTestCase):
         repository_iri, repository_id = await self.create_repository()
         drc_iri, drc_id = \
             await self.create_drc_node(repository_iri=repository_iri)
-        pipeline_iri, pipeline_id = await self.create_pipeline(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
         await self.insert_triples([
             (pipeline_iri, SwarmUI.deleteRequested, "true"),
         ])
@@ -46,7 +47,6 @@ class PipelinesTestCase(IntegrationTestCase):
         await self.assertStatus(pipeline_iri, SwarmUI.Started)
         await self.assertNotExists(s=pipeline_iri, p=SwarmUI.restartRequested)
 
-
     async def update_action(self, pipeline_iri, pipeline_id):
         old_services = await self.get_services(pipeline_id)
         print("update_action the Pipeline to UP")
@@ -65,12 +65,11 @@ class PipelinesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_pipeline_actions(self):
-        # tox -e py36 -- -x -s tests/integration/test_pipelines.py::PipelinesTestCase::test_pipeline_actions
-        print("==================== test_pipeline_actions ====================")
         repository_iri, repository_id = await self.create_repository()
         drc_iri, drc_id = \
             await self.create_drc_node(repository_iri=repository_iri)
-        pipeline_iri, pipeline_id = await self.create_pipeline(repository_iri=repository_iri)
+        pipeline_iri, pipeline_id = \
+            await self.create_pipeline(repository_iri=repository_iri)
 
         await self.do_action(pipeline_iri, pipeline_id, SwarmUI.Up)
         await self.restart_action(pipeline_iri, pipeline_id)
@@ -81,7 +80,6 @@ class PipelinesTestCase(IntegrationTestCase):
 
     @unittest_run_loop
     async def test_is_last_pipeline(self):
-        print("==================== test_is_last_pipeline ====================")
         repository_iri, repository_id = await self.create_repository()
         drc_iri, drc_id = \
             await self.create_drc_node(repository_iri=repository_iri)
