@@ -112,11 +112,11 @@ async def update(request):
     graph = request.app.sparql.graph
     try:
         data = await request.json()
-    except:
+    except Exception:
         raise web.HTTPBadRequest(body="invalid json")
     try:
         data = [UpdateData(x) for x in data['delta']]
-    except:
+    except Exception:
         request.app.logger.exception("Cannot parse delta payload")
         raise web.HTTPBadRequest(body="cannot parse deltas received")
     try:

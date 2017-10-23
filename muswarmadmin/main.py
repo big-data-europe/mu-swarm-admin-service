@@ -176,7 +176,7 @@ class Application(web.Application):
         result = await self.sparql.query("""
             ASK FROM {{graph}} WHERE { ?s mu:uuid {{}} }
             """, escape_string(resource_id))
-        return False if result is None else result['boolean'] 
+        return False if result is None else result['boolean']
 
     def open_compose_data(self, project_id):
         """
