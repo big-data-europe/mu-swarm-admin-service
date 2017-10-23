@@ -35,14 +35,14 @@ async def pollAccumulate(count=0, client=None):
         if not result:
             logger.warn('SPARQL endpoint not yet ready')
             sleep(randint(1, 5))
-            return pollAccumulate(count+1, client)
+            return await pollAccumulate(count+1, client)
         else:
             logger.info('SPARQL endpoint is ready')
             await client.close()
             return True
     except ClientConnectionError:
         sleep(randint(1, 5))
-        return pollAccumulate(count+1, client)
+        return await pollAccumulate(count+1, client)
 
 
 if not loop.run_until_complete(pollAccumulate()):
