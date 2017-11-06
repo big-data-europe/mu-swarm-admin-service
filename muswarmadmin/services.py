@@ -4,6 +4,16 @@ import logging
 
 from muswarmadmin.prefixes import SwarmUI
 
+# TODO For now as I just want to verify that this approach will mitigate
+#      the fact that the swarm admin is unable to mount any volume correctly
+#      other than volumes under /data on the host system I add these methods
+#      every where. Ideally this should be properly extracted etc.
+def get_real_path():
+    return ENV['real_path']
+
+def get_project_path(project_id):
+    return get_real_path() + ("/data/swarm-admin/%s" % project_id)
+
 
 MAXIMUM_LINE_OF_LOGS = 1000
 logger = logging.getLogger(__name__)
@@ -26,7 +36,8 @@ async def do_action(app, project_id, service_id,
     await app.update_state(service_id, pending_state)
     service_name = await app.get_dct_title(service_id)
     all_args = list(args) + [service_name]
-    proc = await app.run_compose(*all_args, cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    proc = await app.run_compose(*all_args, cwd=project_path)
     if proc.returncode is not 0:
         await app.update_state(service_id, SwarmUI.Error)
     else:
@@ -40,8 +51,8 @@ async def up_action(app, project_id, service_id):
     logger.info("Changing service %s status to %s", service_id, SwarmUI.Up)
     await app.update_state(service_id, SwarmUI.Starting)
     service_name = await app.get_dct_title(service_id)
-    proc = await app.run_compose("up", "-d", service_name,
-                                 cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    proc = await app.run_compose("up", "-d", service_name, cwd=project_path)
     if proc.returncode is not 0:
         await app.update_state(service_id, SwarmUI.Error)
     else:
@@ -55,7 +66,8 @@ async def restart_action(app, project_id, service_id):
     logger.info("Restarting service %s", service_id)
     await app.update_state(service_id, SwarmUI.Restarting)
     service_name = await app.get_dct_title(service_id)
-    await app.run_compose("restart", service_name, cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    await app.run_compose("restart", service_name, cwd=project_path)
 
 
 async def scaling_action(app, project_id, service_id, value):
@@ -65,8 +77,8 @@ async def scaling_action(app, project_id, service_id, value):
     logger.info("Scaling service %s to %s", service_id, value)
     await app.update_state(service_id, SwarmUI.Scaling)
     service_name = await app.get_dct_title(service_id)
-    await app.run_compose("scale", "%s=%d" % (service_name, value),
-                          cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    await app.run_compose("scale", "%s=%d" % (service_name, value), cwd=project_path)
 
 
 async def update(app, inserts, deletes):
@@ -149,9 +161,10 @@ async def logs(request):
     except KeyError:
         raise web.HTTPNotFound(body="service %s not found" % service_id)
     service_name = await request.app.get_dct_title(service_id)
+    project_path = get_project_path(project_id)
     proc = await request.app.run_compose(
         "logs", "--no-color", "--tail=%s" % MAXIMUM_LINE_OF_LOGS, service_name,
-        cwd="/data/%s" % project_id, logging=False)
+        cwd=project_path, logging=False)
     if proc.returncode is None or proc.returncode < 0:
         raise web.HTTPRequestTimeout()
     else:

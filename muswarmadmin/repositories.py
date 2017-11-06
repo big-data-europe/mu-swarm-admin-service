@@ -9,6 +9,16 @@ from muswarmadmin.prefixes import Doap, SwarmUI
 
 logger = logging.getLogger(__name__)
 
+# TODO For now as I just want to verify that this approach will mitigate
+#      the fact that the swarm admin is unable to mount any volume correctly
+#      other than volumes under /data on the host system I add these methods
+#      every where. Ideally this should be properly extracted etc.
+def get_real_path():
+    return ENV['real_path']
+
+def get_project_path(project_id):
+    return get_real_path() + ("/data/swarm-admin/%s" % project_id)
+
 
 async def repository_has_location(app, pipeline):
     """
@@ -50,7 +60,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     sources, insert the triples for services
     """
     logger.info("Initializing pipeline %s", project_id)
-    project_path = "/data/%s" % project_id
+    project_path = get_project_path(project_id)
     if os.path.exists(project_path):
         logger.error("Pipeline at %s already exists", project_path)
         return
@@ -59,7 +69,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
     if await repository_has_location(app, pipeline=pipeline):
         proc = await app.run_command(
             "git", "clone", location, "-b", (branch or "master"), project_id,
-            cwd="/data")
+            cwd=get_real_path() + "/data/swarm-admin")
         if proc.returncode != 0:
             logger.error("Failed to clone repository at %s", location)
             if os.path.exists(project_path):
