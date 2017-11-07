@@ -21,6 +21,18 @@ from muswarmadmin.prefixes import Dct, Mu, SwarmUI
 logger = logging.getLogger(__name__)
 
 
+# TODO For now as I just want to verify that this approach will mitigate
+#      the fact that the swarm admin is unable to mount any volume correctly
+#      other than volumes under /data on the host system I add these methods
+#      every where. Ideally this should be properly extracted etc.
+def get_real_path():
+    return ENV['real_path']
+
+def get_project_path(project_id):
+    return get_real_path() + ("/data/swarm-admin/%s" % project_id)
+
+
+
 if ENV.get("ENV", "prod").startswith("dev"):
     logging.basicConfig(level=logging.DEBUG)
 else:
@@ -183,7 +195,7 @@ class Application(web.Application):
         Use Docker Compose to load the data of a project given in parameter.
         Return a Docker Compose data object.
         """
-        project_dir = '/data/%s' % project_id
+        project_dir = get_project_path(project_id)
         config_files = config.config.get_default_config_files(project_dir)
         environment = Environment.from_env_file(project_dir)
         config_details = config.find(project_dir, config_files, environment)

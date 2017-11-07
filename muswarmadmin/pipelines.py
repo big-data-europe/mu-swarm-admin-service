@@ -1,6 +1,7 @@
 import aiodockerpy
 import logging
 import os
+from os import environ as ENV
 from aiosparql.syntax import escape_string, IRI, Literal
 from shutil import rmtree
 
@@ -10,6 +11,15 @@ from muswarmadmin.actionscheduler import StopScheduler
 
 logger = logging.getLogger(__name__)
 
+# TODO For now as I just want to verify that this approach will mitigate
+#      the fact that the swarm admin is unable to mount any volume correctly
+#      other than volumes under /data on the host system I add these methods
+#      every where. Ideally this should be properly extracted etc.
+def get_real_path():
+    return ENV['real_path']
+
+def get_project_path(project_id):
+    return get_real_path() + ("/data/swarm-admin/%s" % project_id)
 
 async def remove_docker_images(app, project_id):
     data = app.open_compose_data(project_id)
@@ -27,11 +37,12 @@ async def shutdown_and_cleanup_pipeline(app, project_id):
     PIPELINE source directory
     """
     logger.info("Shutting down and cleaning up pipeline %s", project_id)
-    project_path = "/data/%s" % project_id
+    project_path = get_project_path(project_id)
     if not os.path.exists(project_path):
         raise StopScheduler()
     await app.update_state(project_id, SwarmUI.Removing)
-    await app.run_compose("down", cwd="/data/%s" % project_id)
+    logger.info("shutdown_and_cleanup_pipeline, project path= [%s]" %project_path)
+    await app.run_compose("down", cwd=project_path)
     if await app.is_last_pipeline(project_id):
         await remove_docker_images(app, project_id)
     rmtree(project_path)
@@ -84,7 +95,9 @@ async def do_action(app, project_id, args, pending_state, end_state):
     """
     logger.info("Changing pipeline %s status to %s", project_id, end_state)
     await app.update_state(project_id, pending_state)
-    proc = await app.run_compose(*args, cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    logger.info("do_action, project path= [%s]" %project_path)
+    proc = await app.run_compose(*args, cwd=project_path)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
@@ -97,8 +110,9 @@ async def up_action(app, project_id):
     """
     logger.info("Changing pipeline %s status to %s", project_id, SwarmUI.Up)
     await app.update_state(project_id, SwarmUI.Starting)
-    proc = await app.run_compose("up", "-d", cwd="/data/%s" % project_id,
-                                 timeout=app.compose_up_timeout)
+    project_path = get_project_path(project_id)
+    logger.info("up action, project path= [%s]" %project_path)
+    proc = await app.run_compose("up", "-d", cwd=project_path, timeout=app.compose_up_timeout)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     else:
@@ -111,7 +125,9 @@ async def restart_action(app, project_id):
     """
     logger.info("Restarting pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Restarting)
-    await app.run_compose("restart", cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    logger.info("restart action, project path= [%s]" %project_path)
+    await app.run_compose("restart", cwd=project_path)
     await app.update_state(project_id, SwarmUI.Started)
 
 
@@ -121,22 +137,24 @@ async def update_action(app, project_id, pipeline):
     """
     logger.info("Updating pipeline %s", project_id)
     await app.update_state(project_id, SwarmUI.Updating)
-    proc = await app.run_command("git", "fetch", cwd="/data/%s" % project_id)
+    project_path = get_project_path(project_id)
+    proc = await app.run_command("git", "fetch", cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
     proc = await app.run_command("git", "reset", "--hard", "origin/master",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path)
     if proc.returncode != 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
-    proc = await app.run_compose("pull", cwd="/data/%s" % project_id)
+    proc = await app.run_compose("pull", cwd=project_path)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
         return
     await app.update_pipeline_services(pipeline)
+
     proc = await app.run_compose("up", "-d", "--remove-orphans",
-                                 cwd="/data/%s" % project_id)
+                                 cwd=project_path)
     if proc.returncode is not 0:
         await app.update_state(project_id, SwarmUI.Error)
     # NOTE: change of status to UP removed. Instead, it is expected
