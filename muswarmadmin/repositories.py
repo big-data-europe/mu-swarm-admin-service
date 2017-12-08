@@ -69,7 +69,7 @@ async def initialize_pipeline(app, pipeline, project_id, location, branch):
 
     if await repository_has_location(app, pipeline=pipeline):
         proc = await app.run_command(
-            "git", "clone", location, "-b", (branch or "master"), project_id,
+            "git", "clone", location, "--recursive" , "-b", (branch or "master"), project_id,
             cwd=get_real_path() + "/data/swarm-admin")
         if proc.returncode != 0:
             logger.error("Failed to clone repository at %s", location)
