@@ -22,7 +22,7 @@ class ServicesTestCase(IntegrationTestCase):
 
     async def scale_action(self, pipeline_id, service_iri, service_id, value):
         await self.insert_triples([
-            (service_iri, SwarmUI.requestedScaling, value),
+            (service_iri, SwarmUI.scalingRequested, value),
         ])
         await self.scheduler_complete(pipeline_id)
         await self.assertNode(service_iri, {

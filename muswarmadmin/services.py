@@ -73,7 +73,7 @@ async def restart_action(app, project_id, service_id):
 
 async def scaling_action(app, project_id, service_id, value):
     """
-    Action triggered when swarmui:requestedScaling change
+    Action triggered when swarmui:scalingRequested change
     """
     logger.info("Scaling service %s to %s", service_id, value)
     await app.update_state(service_id, SwarmUI.Scaling)
@@ -124,7 +124,7 @@ async def update(app, inserts, deletes):
                 await app.enqueue_action(project_id, restart_action,
                                          [app, project_id, service_id])
 
-            elif triple.p == SwarmUI.requestedScaling:
+            elif triple.p == SwarmUI.scalingRequested:
                 assert isinstance(triple.o, Literal), \
                     "wrong type: %r" % type(triple.o)
                 service_id = await app.get_resource_id(subject)
@@ -144,7 +144,7 @@ async def get_existing_updates(sparql):
             ?s a swarmui:Service ;
               ?p ?o .
             FILTER (?p IN (
-              swarmui:requestedScaling,
+              swarmui:scalingRequested,
               swarmui:requestedStatus,
               swarmui:restartRequested
             ))
