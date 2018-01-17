@@ -79,7 +79,7 @@ async def scaling_action(app, project_id, service_id, value):
     await app.update_state(service_id, SwarmUI.Scaling)
     service_name = await app.get_dct_title(service_id)
     project_path = get_project_path(project_id)
-    await app.run_compose("scale", "%s=%d" % (service_name, value), cwd=project_path)
+    await app.run_compose("up", "--scale", "%s=%d" % (service_name, value), "-d", service_name, cwd=project_path)
 
 
 async def update(app, inserts, deletes):
