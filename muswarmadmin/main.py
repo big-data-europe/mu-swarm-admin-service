@@ -368,8 +368,7 @@ class Application(web.Application):
         Run a subprocess with Docker Compose, log the output, wait for its
         execution to complete, timeout eventually. Return a process object.
         """
-        return await self.run_command("docker-compose", "--no-ansi", *args,
-                                      **kwargs)
+        return await self.run_command("docker-compose", *args, **kwargs)
 
     async def _log_streamreader(self, reader):
         """
