@@ -30,8 +30,8 @@ class SwarmUI(Namespace):
     deleteRequested = PrefixedName
     dockerComposeFile = PrefixedName
     pipelines = PrefixedName
-    requestedScaling = PrefixedName
     requestedStatus = PrefixedName
+    scalingRequested = PrefixedName
     restartRequested = PrefixedName
     scaling = PrefixedName
     services = PrefixedName
